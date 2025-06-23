@@ -42,9 +42,14 @@ To learn more about developing your project with Expo, look at the following res
 - [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
 - [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
 
-## Join the community
+## Project Description
 
-Join our community of developers creating universal apps.
+The Client wishes to hire the Developer to develop a mobile app. The specific requirements and the details as stated by the Client are as follows:
+The “Alpha Boost” project aims to develop an AI-powered system for early literacy development by identifying and correcting letter sequencing errors in children’s handwriting and typing. The system will include:
+•	Handwriting and typing error detection.
+•	Real-time visual and audio feedback.
+•	Personalized learning activities.
+•	Gamified learning environment.
+•	Progress tracking and report generation.
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+

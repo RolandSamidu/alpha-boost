@@ -1,10 +1,10 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 
-export default function FeedbackScreen() {
+export default function GameZoneScreen() {
   return (
     <View style={styles.container}>
-      <Text style={styles.text}>Detection Screen</Text>
+      <Text style={styles.text}>GameZone Screen</Text>
     </View>
   );
 }

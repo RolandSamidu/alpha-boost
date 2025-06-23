@@ -1,10 +1,10 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 
-export default function DetectionScreen() {
+export default function ActivitiesScreen() {
   return (
     <View style={styles.container}>
-      <Text style={styles.text}>Detection Screen</Text>
+      <Text style={styles.text}>Activities Screen</Text>
     </View>
   );
 }

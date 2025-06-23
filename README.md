@@ -45,11 +45,13 @@ To learn more about developing your project with Expo, look at the following res
 ## Project Description
 
 The Client wishes to hire the Developer to develop a mobile app. The specific requirements and the details as stated by the Client are as follows:
+
 The “Alpha Boost” project aims to develop an AI-powered system for early literacy development by identifying and correcting letter sequencing errors in children’s handwriting and typing. The system will include:
-•	Handwriting and typing error detection.
-•	Real-time visual and audio feedback.
-•	Personalized learning activities.
-•	Gamified learning environment.
-•	Progress tracking and report generation.
+
+-  Handwriting and typing error detection.
+-	Real-time visual and audio feedback.
+-	Personalized learning activities.
+-	Gamified learning environment.
+-	Progress tracking and report generation.
 
 

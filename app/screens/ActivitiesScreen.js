@@ -1,9 +1,8 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   TextInput,
   Image,
-  Button,
   Text,
   StyleSheet,
   TouchableOpacity,
@@ -13,12 +12,21 @@ import learningData from "../../assets/data/learningData.json";
 import { audioMap } from "./audioMap";
 import { imageMap } from "./imageMap";
 
+const getRandomItems = (array, count) => {
+  const shuffled = [...array].sort(() => 0.5 - Math.random());
+  return shuffled.slice(0, count);
+};
+
 const ActivitiesScreen = () => {
+  const [selectedData, setSelectedData] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [inputText, setInputText] = useState("");
   const [sound, setSound] = useState(null);
 
-  const currentItem = learningData[currentIndex];
+  useEffect(() => {
+    const randomItems = getRandomItems(learningData, 10);
+    setSelectedData(randomItems);
+  }, []);
 
   useEffect(() => {
     return sound
@@ -29,21 +37,26 @@ const ActivitiesScreen = () => {
   }, [sound]);
 
   const playPronunciation = async () => {
-    const { sound } = await Audio.Sound.createAsync(
-      audioMap[currentItem.audio]
-    );
-    setSound(sound);
-    await sound.playAsync();
+    const currentItem = selectedData[currentIndex];
+    if (currentItem && audioMap[currentItem.audio]) {
+      const { sound } = await Audio.Sound.createAsync(audioMap[currentItem.audio]);
+      setSound(sound);
+      await sound.playAsync();
+    }
   };
 
   const goToNext = () => {
-    if (currentIndex < learningData.length - 1) {
+    if (currentIndex < selectedData.length - 1) {
       setCurrentIndex(currentIndex + 1);
       setInputText("");
     } else {
-      alert("Well done! You completed all!");
+      alert("🎉 Well done! You completed all!");
     }
   };
+
+  if (selectedData.length === 0) return <Text>Loading...</Text>;
+
+  const currentItem = selectedData[currentIndex];
 
   return (
     <View style={styles.container}>

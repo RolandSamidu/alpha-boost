@@ -16,7 +16,7 @@ export default function HomeScreen() {
         <Text style={styles.buttonText}>Real-time Feedback</Text>
       </TouchableOpacity>
 
-      <TouchableOpacity style={styles.button} onPress={() => router.push('/screens/FeedbackScreen')}>
+      <TouchableOpacity style={styles.button} onPress={() => router.push('/screens/ActivitiesScreen')}>
         <Text style={styles.buttonText}>Learning Activities</Text>
       </TouchableOpacity>
 

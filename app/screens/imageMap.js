@@ -1,0 +1,17 @@
+export const imageMap = {
+  'apple.png': require('../../assets/images/apple.png'),
+  'banana.png': require('../../assets/images/banana.png'),
+  'cup.png' : require('../../assets/images/cup.png'),
+  'elephant.png' : require('../../assets/images/elephant.png'),
+  'monitor.png' : require('../../assets/images/monitor.png'),
+  'tiger.png' : require('../../assets/images/tiger.png'),
+  'cherry.png' : require('../../assets/images/cherry.png'),
+  'dolphin.png' : require('../../assets/images/dolphin.png'),
+  'giraffe.png' : require('../../assets/images/giraffe.png'),
+  'printer.png' : require('../../assets/images/printer.png'),
+  'blueberry.png' : require('../../assets/images/blueberry.png'),
+  'grapes.png' : require('../../assets/images/grapes.png'),
+  'penguin.png' : require('../../assets/images/penguin.png'),
+  'strawberry.png' : require('../../assets/images/strawberry.png'),
+  'mouse.jpg' : require('../../assets/images/mouse.jpg'),
+};

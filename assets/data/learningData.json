@@ -1,0 +1,77 @@
+[
+  {
+    "image": "apple.png",
+    "audio": "apple.mp3",
+    "word": "apple"
+  },
+  {
+    "image": "banana.png",
+    "audio": "banana.mp3",
+    "word": "banana"
+  },
+  {
+    "image": "cup.png",
+    "audio": "cup.mp3",
+    "word": "cup"
+  },
+  {
+    "image": "elephant.png",
+    "audio": "elephant.mp3",
+    "word": "elephant"
+  },
+  {
+    "image": "monitor.png",
+    "audio": "monitor.mp3",
+    "word": "monitor"
+  },
+  {
+    "image": "tiger.png",
+    "audio": "tiger.mp3",
+    "word": "tiger"
+  },
+  {
+    "image": "cherry.png",
+    "audio": "cherry.mp3",
+    "word": "cherry"
+  },
+  {
+    "image": "dolphin.png",
+    "audio": "dolphin.mp3",
+    "word": "dolphin"
+  },
+  {
+    "image": "giraffe.png",
+    "audio": "giraffe.mp3",
+    "word": "giraffe"
+  },
+  {
+    "image": "printer.png",
+    "audio": "printer.mp3",
+    "word": "printer"
+  },
+  {
+    "image": "blueberry.png",
+    "audio": "blueberry.mp3",
+    "word": "blueberry"
+  },
+  {
+    "image": "grapes.png",
+    "audio": "grapes.mp3",
+    "word": "grapes"
+  },
+  {
+    "image": "penguin.png",
+    "audio": "penguin.mp3",
+    "word": "penguin"
+  },
+  {
+    "image": "strawberry.png",
+    "audio": "strawberry.mp3",
+    "word": "strawberry"
+  },
+  {
+    "image": "mouse.jpg",
+    "audio": "mouse.mp3",
+    "word": "mouse"
+  }
+]

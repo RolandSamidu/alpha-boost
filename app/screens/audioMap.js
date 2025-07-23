@@ -1,0 +1,17 @@
+export const audioMap = {
+  'apple.mp3': require('../../assets/audio/apple.mp3'),
+  'banana.mp3': require('../../assets/audio/banana.mp3'),
+  'cup.mp3': require('../../assets/audio/cup.mp3'),
+  'elephant.mp3': require('../../assets/audio/elephant.mp3'),
+  'monitor.mp3': require('../../assets/audio/monitor.mp3'),
+  'tiger.mp3': require('../../assets/audio/tiger.mp3'),
+  'cherry.mp3': require('../../assets/audio/cherry.mp3'),
+  'dolphin.mp3': require('../../assets/audio/dolphin.mp3'),
+  'giraffe.mp3': require('../../assets/audio/giraffe.mp3'),
+  'printer.mp3': require('../../assets/audio/printer.mp3'),
+  'blueberry.mp3': require('../../assets/audio/blueberry.mp3'),
+  'grapes.mp3': require('../../assets/audio/grapes.mp3'),
+  'penguin.mp3': require('../../assets/audio/penguin.mp3'),
+  'strawberry.mp3': require('../../assets/audio/strawberry.mp3'),
+  'mouse.mp3': require('../../assets/audio/mouse.mp3'),
+};

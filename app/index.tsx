@@ -1,32 +1,87 @@
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { useRouter } from 'expo-router';
+import { Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
+import React from "react";
+import {
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import AppBar from "./components/AppBar";
+import DashboardCard from "./components/DashboardCard";
 
 export default function HomeScreen() {
   const router = useRouter();
 
+  const stats = [
+    { icon: "trophy", value: "85%", label: "Accuracy", color: "#10B981" },
+    { icon: "time", value: "24", label: "Sessions", color: "#3B82F6" },
+    { icon: "trending-up", value: "+12%", label: "Progress", color: "#8B5CF6" },
+    { icon: "flame", value: "7", label: "Streak", color: "#F59E0B" },
+  ];
+
+  const rightAction = (
+    <TouchableOpacity style={styles.profileButton}>
+      <Ionicons name="person-circle" size={32} color="#FFFFFF" />
+    </TouchableOpacity>
+  );
+
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Alpha Boost</Text>
+      <AppBar title="Alpha Boost" rightAction={rightAction} />
 
-      <TouchableOpacity style={styles.button} onPress={() => router.push('/screens/DetectionScreen')}>
-        <Text style={styles.buttonText}>Handwriting & Typing Detection</Text>
-      </TouchableOpacity>
+      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+        {/* Welcome Section */}
+        <View style={styles.welcomeSection}>
+          <Text style={styles.welcomeText}>Welcome back!</Text>
+        </View>
 
-      <TouchableOpacity style={styles.button} onPress={() => router.push('/screens/FeedbackScreen')}>
-        <Text style={styles.buttonText}>Real-time Feedback</Text>
-      </TouchableOpacity>
+        {/* Quick Actions */}
+        <Text style={styles.sectionTitle}>Learning Modules</Text>
 
-      <TouchableOpacity style={styles.button} onPress={() => router.push('/screens/ActivitiesScreen')}>
-        <Text style={styles.buttonText}>Learning Activities</Text>
-      </TouchableOpacity>
+        <DashboardCard
+          title="Handwriting Detection"
+          description="Practice your handwriting with AI feedback"
+          icon="create"
+          color="#3B82F6"
+          onPress={() => router.push("/screens/DetectionScreen")}
+        />
 
-      <TouchableOpacity style={styles.button} onPress={() => router.push('/screens/GameZoneScreen')}>
-        <Text style={styles.buttonText}>Game Zone</Text>
-      </TouchableOpacity>
+        <DashboardCard
+          title="Real-time Feedback"
+          description="Get instant feedback on your writing"
+          icon="chatbubble-ellipses"
+          color="#10B981"
+          onPress={() => router.push("/screens/FeedbackScreen")}
+        />
 
-      <TouchableOpacity style={styles.button} onPress={() => router.push('/screens/ProgressScreen')}>
-        <Text style={styles.buttonText}>Progress Tracker</Text>
-      </TouchableOpacity>
+        <DashboardCard
+          title="Learning Activities"
+          description="Interactive exercises and challenges"
+          icon="library"
+          color="#8B5CF6"
+          onPress={() => router.push("/screens/ActivitiesScreen")}
+        />
+
+        <DashboardCard
+          title="Game Zone"
+          description="Fun games to improve your skills"
+          icon="game-controller"
+          color="#F59E0B"
+          onPress={() => router.push("/screens/GameZoneScreen")}
+        />
+
+        <DashboardCard
+          title="Progress Tracker"
+          description="Monitor your learning journey"
+          icon="analytics"
+          color="#EF4444"
+          onPress={() => router.push("/screens/ProgressScreen")}
+        />
+
+        <View style={styles.bottomSpacing} />
+      </ScrollView>
     </View>
   );
 }
@@ -34,27 +89,37 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F4F6FA',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 20,
+    backgroundColor: "#F8FAFC",
   },
-  title: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    marginBottom: 40,
-    color: '#333',
+  content: {
+    flex: 1,
   },
-  button: {
-    backgroundColor: '#4F8EF7',
-    padding: 15,
-    marginVertical: 10,
-    borderRadius: 10,
-    width: '100%',
+  profileButton: {
+    padding: 4,
   },
-  buttonText: {
-    color: '#fff',
+  welcomeSection: {
+    padding: 20,
+    paddingBottom: 10,
+  },
+  welcomeText: {
+    fontSize: 28,
+    fontWeight: "bold",
+    color: "#1F2937",
+    marginBottom: 4,
+  },
+  welcomeSubtext: {
     fontSize: 16,
-    textAlign: 'center',
+    color: "#6B7280",
+  },
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: "bold",
+    color: "#1F2937",
+    marginHorizontal: 16,
+    marginTop: 8,
+    marginBottom: 8,
+  },
+  bottomSpacing: {
+    height: 20,
   },
 });

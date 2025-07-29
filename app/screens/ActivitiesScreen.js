@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import {
   Alert,
   Image,
+  Modal,
   ScrollView,
   StyleSheet,
   Text,
@@ -12,14 +13,20 @@ import {
   View,
 } from "react-native";
 import learningData from "../../assets/data/learningData.json";
-import AppBar from "../components/AppBar";
 import {
   checkWordsWithAPI as apiCheckWords,
   findWorkingAPI,
   handleApiError,
-} from "../services/apiService";
+} from "../../services/apiService";
+import AppBar from "../components/AppBar";
+import PlayerNameModal from "../components/PlayerNameModal";
 import { audioMap } from "./audioMap";
 import { imageMap } from "./imageMap";
+import AdditionGame from "../games/AdditionGame";
+import LetterPhonemeGame from "../games/LetterPhonemeGame";
+import OmissionGame from "../games/OmissionGame";
+import SilentLettersGame from "../games/SilentLettersGame";
+import TranspositionGame from "../games/TranspositionGame";
 
 const getRandomItems = (array, count) => {
   const shuffled = [...array].sort(() => 0.5 - Math.random());
@@ -34,6 +41,14 @@ const ActivitiesScreen = () => {
   const [inputWords, setInputWords] = useState([]);
   const [isCheckingWords, setIsCheckingWords] = useState(false);
   const [apiConnectionStatus, setApiConnectionStatus] = useState("unknown");
+
+  const [showGameModal, setShowGameModal] = useState(false);
+  const [currentGame, setCurrentGame] = useState(null);
+  const [gameData, setGameData] = useState(null);
+  const [apiResult, setApiResult] = useState(null);
+
+  const [showPlayerNameModal, setShowPlayerNameModal] = useState(false);
+  const [gameScoreData, setGameScoreData] = useState(null);
 
   useEffect(() => {
     const randomItems = getRandomItems(learningData, 3);
@@ -59,6 +74,220 @@ const ActivitiesScreen = () => {
     }
   };
 
+  const startGame = (gameType, suggestions) => {
+    setCurrentGame(gameType);
+    setGameData(suggestions);
+    setShowGameModal(true);
+  };
+
+  const onGameComplete = (gameTitle, finalScore) => {
+    setShowGameModal(false);
+    setCurrentGame(null);
+    setGameData(null);
+
+    const errorTypes = [];
+    if (apiResult && apiResult.grouped_analysis) {
+      Object.keys(apiResult.grouped_analysis).forEach((errorType) => {
+        if (apiResult.grouped_analysis[errorType].suggested_words?.length > 0) {
+          errorTypes.push(errorType);
+        }
+      });
+    }
+
+    setGameScoreData({
+      gameTitle,
+      score: finalScore,
+      errorTypes,
+    });
+
+    setShowPlayerNameModal(true);
+  };
+
+  const onScoreSaved = (savedScore) => {
+    setShowPlayerNameModal(false);
+    setGameScoreData(null);
+
+    Alert.alert(
+      "Score Saved!",
+      `Great job, ${savedScore.playerName}!\n\nYour score of ${savedScore.score} points has been saved.\n\nCheck your progress in the Progress Tracker!`,
+      [
+        {
+          text: "Play Another Game",
+          onPress: () => showGameSelection(),
+        },
+        {
+          text: "Done",
+          style: "cancel",
+        },
+      ]
+    );
+  };
+
+  const onScoreSaveSkipped = () => {
+    setShowPlayerNameModal(false);
+    setGameScoreData(null);
+
+    Alert.alert(
+      "Game Complete!",
+      `Final Score: ${
+        gameScoreData?.score || 0
+      } points\n\nGreat job practicing your spelling!`,
+      [
+        {
+          text: "Play Another Game",
+          onPress: () => showGameSelection(),
+        },
+        {
+          text: "Done",
+          style: "cancel",
+        },
+      ]
+    );
+  };
+
+  const showGameSelection = () => {
+    if (!apiResult || !apiResult.grouped_analysis) {
+      Alert.alert(
+        "No Games Available",
+        "No spelling errors found to practice with!"
+      );
+      return;
+    }
+
+    const { grouped_analysis } = apiResult;
+    const availableGames = [];
+
+    if (
+      grouped_analysis["Silent Letters"] &&
+      grouped_analysis["Silent Letters"].suggested_words?.length > 0
+    ) {
+      availableGames.push({
+        title: "Silent Letters Game",
+        type: "silent",
+        description: "Find the silent letters in words",
+        suggestions: grouped_analysis["Silent Letters"].suggested_words,
+      });
+    }
+
+    if (
+      grouped_analysis["Transpositions"] &&
+      grouped_analysis["Transpositions"].suggested_words?.length > 0
+    ) {
+      availableGames.push({
+        title: "Word Scramble Game",
+        type: "transposition",
+        description: "Unscramble the letters to make words",
+        suggestions: grouped_analysis["Transpositions"].suggested_words,
+      });
+    }
+
+    if (
+      grouped_analysis["Letter-Phoneme Correspondence"] &&
+      grouped_analysis["Letter-Phoneme Correspondence"].suggested_words
+        ?.length > 0
+    ) {
+      availableGames.push({
+        title: "Phoneme Spelling Game",
+        type: "phoneme",
+        description: "Practice spelling with sound patterns",
+        suggestions:
+          grouped_analysis["Letter-Phoneme Correspondence"].suggested_words,
+      });
+    }
+
+    if (
+      grouped_analysis["Omission of Letters"] &&
+      grouped_analysis["Omission of Letters"].suggested_words?.length > 0
+    ) {
+      availableGames.push({
+        title: "Fill the Blanks",
+        type: "omission",
+        description: "Add the missing letters",
+        suggestions: grouped_analysis["Omission of Letters"].suggested_words,
+      });
+    }
+
+    if (
+      grouped_analysis["Addition of Letters"] &&
+      grouped_analysis["Addition of Letters"].suggested_words?.length > 0
+    ) {
+      availableGames.push({
+        title: "Remove Extra Letters",
+        type: "addition",
+        description: "Find and remove the extra letters",
+        suggestions: grouped_analysis["Addition of Letters"].suggested_words,
+      });
+    }
+
+    if (availableGames.length === 0) {
+      Alert.alert(
+        "No Games Available",
+        "Perfect spelling! No practice games needed."
+      );
+      return;
+    }
+
+    const gameButtons = availableGames.map((game) => ({
+      text: game.title,
+      onPress: () => startGame(game.type, game.suggestions),
+    }));
+
+    gameButtons.push({
+      text: "Cancel",
+      style: "cancel",
+    });
+
+    Alert.alert(
+      "Choose a Spelling Game",
+      "Select a game to practice your spelling skills:",
+      gameButtons
+    );
+  };
+
+  const renderCurrentGame = () => {
+    if (!currentGame || !gameData) return null;
+    console.log(currentGame, gameData);
+    switch (currentGame) {
+      case "silent":
+        return (
+          <SilentLettersGame
+            suggestionWords={gameData}
+            onGameComplete={onGameComplete}
+          />
+        );
+      case "transposition":
+        return (
+          <TranspositionGame
+            suggestionWords={gameData}
+            onGameComplete={onGameComplete}
+          />
+        );
+      case "phoneme":
+        return (
+          <LetterPhonemeGame
+            suggestionWords={gameData}
+            onGameComplete={onGameComplete}
+          />
+        );
+      case "omission":
+        return (
+          <OmissionGame
+            suggestionWords={gameData}
+            onGameComplete={onGameComplete}
+          />
+        );
+      case "addition":
+        return (
+          <AdditionGame
+            suggestionWords={gameData}
+            onGameComplete={onGameComplete}
+          />
+        );
+      default:
+        return null;
+    }
+  };
+
   const displayResults = (result, apiUrl) => {
     if (!result.success) {
       Alert.alert("Error", "Invalid API response");
@@ -66,6 +295,8 @@ const ActivitiesScreen = () => {
     }
 
     const { summary, individual_results, grouped_analysis } = result;
+
+    setApiResult(result);
 
     let message = `Spelling Check Results\n\n`;
     message += `Correct: ${summary.correct_words}/${summary.total_words} words\n`;
@@ -87,17 +318,23 @@ const ActivitiesScreen = () => {
         ).toFixed(1)}%)\n`;
       });
 
-      message += `\nGame Stats:\n`;
-      message += `Score: ${summary.final_score}\n`;
-      message += `Streak: ${summary.final_streak}\n`;
-      message += `Difficulty: ${summary.final_difficulty}/5\n`;
+      Alert.alert("Spelling Results", message, [
+        {
+          text: "Play Games",
+          onPress: () => showGameSelection(),
+        },
+        {
+          text: "OK",
+          style: "cancel",
+        },
+      ]);
     } else {
       message += `Perfect spelling! All words are correct!\n`;
       message += `You're amazing!\n\n`;
       message += `Final Score: ${summary.final_score}\n`;
-    }
 
-    Alert.alert("Spelling Results", message);
+      Alert.alert("Spelling Results", message);
+    }
   };
 
   const checkWordsWithAPI = async (words) => {
@@ -293,6 +530,36 @@ const ActivitiesScreen = () => {
           </TouchableOpacity>
         </View>
       </View>
+
+      <Modal
+        animationType="slide"
+        transparent={false}
+        visible={showGameModal}
+        onRequestClose={() => setShowGameModal(false)}
+      >
+        <View style={styles.gameModalContainer}>
+          <View style={styles.gameHeader}>
+            <TouchableOpacity
+              style={styles.closeGameButton}
+              onPress={() => setShowGameModal(false)}
+            >
+              <Ionicons name="close" size={24} color="#FFFFFF" />
+            </TouchableOpacity>
+          </View>
+          {renderCurrentGame()}
+        </View>
+      </Modal>
+
+      {gameScoreData && (
+        <PlayerNameModal
+          visible={showPlayerNameModal}
+          gameTitle={gameScoreData.gameTitle}
+          score={gameScoreData.score}
+          errorTypes={gameScoreData.errorTypes}
+          onSave={onScoreSaved}
+          onCancel={onScoreSaveSkipped}
+        />
+      )}
     </ScrollView>
   );
 };
@@ -452,5 +719,21 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
     fontSize: 16,
     fontWeight: "600",
+  },
+  gameModalContainer: {
+    flex: 1,
+    backgroundColor: "#F8FAFC",
+  },
+  gameHeader: {
+    backgroundColor: "#1F2937",
+    paddingTop: 50,
+    paddingBottom: 16,
+    paddingHorizontal: 16,
+    alignItems: "flex-end",
+  },
+  closeGameButton: {
+    backgroundColor: "#EF4444",
+    borderRadius: 20,
+    padding: 8,
   },
 });

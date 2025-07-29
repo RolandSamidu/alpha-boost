@@ -32,12 +32,10 @@ export default function HomeScreen() {
       <AppBar title="Alpha Boost" rightAction={rightAction} />
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        {/* Welcome Section */}
         <View style={styles.welcomeSection}>
           <Text style={styles.welcomeText}>Welcome back!</Text>
         </View>
 
-        {/* Quick Actions */}
         <Text style={styles.sectionTitle}>Learning Modules</Text>
 
         <DashboardCard
@@ -64,13 +62,13 @@ export default function HomeScreen() {
           onPress={() => router.push("/screens/ActivitiesScreen")}
         />
 
-        <DashboardCard
+        {/* <DashboardCard
           title="Game Zone"
           description="Fun games to improve your skills"
           icon="game-controller"
           color="#F59E0B"
           onPress={() => router.push("/screens/GameZoneScreen")}
-        />
+        /> */}
 
         <DashboardCard
           title="Progress Tracker"

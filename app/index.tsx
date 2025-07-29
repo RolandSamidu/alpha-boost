@@ -14,13 +14,6 @@ import DashboardCard from "./components/DashboardCard";
 export default function HomeScreen() {
   const router = useRouter();
 
-  const stats = [
-    { icon: "trophy", value: "85%", label: "Accuracy", color: "#10B981" },
-    { icon: "time", value: "24", label: "Sessions", color: "#3B82F6" },
-    { icon: "trending-up", value: "+12%", label: "Progress", color: "#8B5CF6" },
-    { icon: "flame", value: "7", label: "Streak", color: "#F59E0B" },
-  ];
-
   const rightAction = (
     <TouchableOpacity style={styles.profileButton}>
       <Ionicons name="person-circle" size={32} color="#FFFFFF" />

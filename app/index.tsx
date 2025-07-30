@@ -36,7 +36,7 @@ export default function HomeScreen() {
           description="Practice your handwriting with AI feedback"
           icon="create"
           color="#3B82F6"
-          onPress={() => router.push("/screens/DetectionScreen")}
+          onPress={() => router.push("/screens/HandwritingRecognition")}
         />
 
         <DashboardCard

@@ -55,13 +55,13 @@ export default function HomeScreen() {
           onPress={() => router.push("/screens/ActivitiesScreen")}
         />
 
-        {/* <DashboardCard
+        <DashboardCard
           title="Game Zone"
-          description="Fun games to improve your skills"
+          description="Fun spelling games to improve your skills"
           icon="game-controller"
           color="#F59E0B"
           onPress={() => router.push("/screens/GameZoneScreen")}
-        /> */}
+        />
 
         <DashboardCard
           title="Progress Tracker"

@@ -193,8 +193,20 @@ const styles = StyleSheet.create({
   incorrectWord: {
     fontSize: 16,
     color: "#EF4444",
-    marginBottom: 20,
+    marginBottom: 8,
     fontStyle: "italic",
+  },
+  correctWordSection: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    marginBottom: 20,
+  },
+  correctWordLabel: {
+    fontSize: 16,
+    color: "#059669",
+    fontWeight: "500",
   },
   wordContainer: {
     flexDirection: "row",

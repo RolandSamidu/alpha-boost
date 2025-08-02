@@ -57,7 +57,7 @@ const LetterPhonemeGame = ({ suggestionWords, onGameComplete }) => {
   const showPhoneticGuide = () => {
     const phoneticGuide = getPhoneticSpelling(currentWord.correct_word);
     Alert.alert(
-      "� Word Pronunciation",
+      "🔊 Word Pronunciation",
       `Word: "${
         currentWord.correct_word
       }"\n\nPronounce it as: ${phoneticGuide}\n\n${getPhonemeHint(

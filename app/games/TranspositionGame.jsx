@@ -1,5 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   Alert,
   ScrollView,
@@ -26,9 +26,9 @@ const TranspositionGame = ({ suggestionWords, onGameComplete }) => {
     if (gameWords[currentWordIndex]) {
       scrambleWord();
     }
-  }, [currentWordIndex, gameWords]);
+  }, [currentWordIndex, gameWords, scrambleWord]);
 
-  const scrambleWord = () => {
+  const scrambleWord = useCallback(() => {
     const word = gameWords[currentWordIndex]?.correct_word;
     if (word) {
       const letters = word.split("").map((letter, index) => ({
@@ -42,7 +42,7 @@ const TranspositionGame = ({ suggestionWords, onGameComplete }) => {
       setScrambledLetters(shuffled);
       setUserAnswer([]);
     }
-  };
+  }, [gameWords, currentWordIndex]);
 
   const handleLetterPress = (letterObj) => {
     setUserAnswer([...userAnswer, letterObj]);

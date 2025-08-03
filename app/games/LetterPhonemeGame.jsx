@@ -9,6 +9,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import TTSHelper from "../utils/ttsHelper";
 
 const LetterPhonemeGame = ({ suggestionWords, onGameComplete }) => {
   const [currentWordIndex, setCurrentWordIndex] = useState(0);
@@ -17,78 +18,22 @@ const LetterPhonemeGame = ({ suggestionWords, onGameComplete }) => {
   const [gameWords, setGameWords] = useState([]);
   const [showHint, setShowHint] = useState(false);
 
-  const speakWord = async () => {
-    if (currentWord) {
-      try {
-        // Try Web Speech API for web browsers and some mobile browsers
-        if (typeof window !== "undefined" && window.speechSynthesis) {
-          // Stop any currently speaking utterance
-          window.speechSynthesis.cancel();
-
-          const utterance = new SpeechSynthesisUtterance(
-            currentWord.correct_word
-          );
-          utterance.rate = 0.7;
-          utterance.pitch = 1.0;
-          utterance.volume = 1.0;
-          utterance.lang = "en-US";
-
-          utterance.onstart = () => console.log("Speech started");
-          utterance.onend = () => console.log("Speech completed");
-          utterance.onerror = (event) => {
-            console.log("Speech error:", event.error);
-            showPhoneticGuide();
-          };
-
-          window.speechSynthesis.speak(utterance);
-          return;
-        }
-
-        // For mobile devices without Web Speech API, show phonetic guide with audio hint
-        console.log("Web Speech API not available, showing phonetic guide");
-        showPhoneticGuide();
-      } catch (error) {
-        console.log("Speech not available:", error);
-        showPhoneticGuide();
-      }
-    }
-  };
-
-  const showPhoneticGuide = () => {
-    const phoneticGuide = getPhoneticSpelling(currentWord.correct_word);
-    Alert.alert(
-      "🔊 Word Pronunciation",
-      `Word: "${
-        currentWord.correct_word
-      }"\n\nPronounce it as: ${phoneticGuide}\n\n${getPhonemeHint(
-        currentWord.correct_word
-      )}\n\nSay the word out loud to practice!`,
-      [
-        {
-          text: "Practice Speaking",
-          style: "default",
-          onPress: () => {
-            // On mobile, provide additional guidance
-            Alert.alert(
-              "🗣️ Practice Tip",
-              `Break it down:\n"${phoneticGuide}"\n\nSay each part slowly, then speed up!`,
-              [{ text: "Got it!", style: "cancel" }]
-            );
-          },
-        },
-        {
-          text: "Ready!",
-          style: "cancel",
-        },
-      ]
-    );
-  };
-
   useEffect(() => {
     if (suggestionWords && suggestionWords.length > 0) {
       setGameWords(suggestionWords.slice(0, 5));
     }
   }, [suggestionWords]);
+
+  useEffect(() => {
+    TTSHelper.initialize();
+  }, []);
+
+  const speakWord = async () => {
+    if (currentWord && currentWord.correct_word) {
+      await TTSHelper.speak(currentWord.correct_word);
+    }
+  };
+
 
   const currentWord = gameWords[currentWordIndex];
 

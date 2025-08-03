@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import TTSHelper from "../utils/ttsHelper";
 
 const AdditionGame = ({ suggestionWords, onGameComplete }) => {
   const [currentWordIndex, setCurrentWordIndex] = useState(0);
@@ -20,6 +21,18 @@ const AdditionGame = ({ suggestionWords, onGameComplete }) => {
       setGameWords(suggestionWords.slice(0, 5));
     }
   }, [suggestionWords]);
+
+  useEffect(() => {
+    // Initialize TTS
+    TTSHelper.initialize();
+  }, []);
+
+  const speakWord = async () => {
+    const currentWord = gameWords[currentWordIndex];
+    if (currentWord && currentWord.correct_word) {
+      await TTSHelper.speak(currentWord.correct_word);
+    }
+  };
 
   const findExtraLetters = (incorrect, correct) => {
     const extraLetters = [];
@@ -145,6 +158,11 @@ const AdditionGame = ({ suggestionWords, onGameComplete }) => {
           Find and select the extra letters that shouldn&apos;t be in this word:
         </Text>
 
+        <TouchableOpacity style={styles.speakButton} onPress={speakWord}>
+          <Ionicons name="volume-high" size={20} color="#FFFFFF" />
+          <Text style={styles.speakButtonText}>Hear Correct Word</Text>
+        </TouchableOpacity>
+
         <View style={styles.wordContainer}>
           <Text style={styles.wordLabel}>Incorrect word:</Text>
           <View style={styles.letterContainer}>
@@ -255,6 +273,20 @@ const styles = StyleSheet.create({
     textAlign: "center",
     marginBottom: 24,
     color: "#374151",
+  },
+  speakButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#8B5CF6",
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 16,
+    gap: 6,
+  },
+  speakButtonText: {
+    color: "#FFFFFF",
+    fontSize: 14,
+    fontWeight: "600",
   },
   wordContainer: {
     width: "100%",

@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import TTSHelper from "../utils/ttsHelper";
 
 const SilentLettersGame = ({ suggestionWords, onGameComplete }) => {
   const [currentWordIndex, setCurrentWordIndex] = useState(0);
@@ -20,6 +21,17 @@ const SilentLettersGame = ({ suggestionWords, onGameComplete }) => {
       setGameWords(suggestionWords.slice(0, 5));
     }
   }, [suggestionWords]);
+
+  useEffect(() => {
+    // Initialize TTS
+    TTSHelper.initialize();
+  }, []);
+
+  const speakWord = async () => {
+    if (currentWord && currentWord.correct_word) {
+      await TTSHelper.speak(currentWord.correct_word);
+    }
+  };
 
   const currentWord = gameWords[currentWordIndex];
 
@@ -111,8 +123,13 @@ const SilentLettersGame = ({ suggestionWords, onGameComplete }) => {
         </Text>
 
         <Text style={styles.incorrectWord}>
-          Incorrect: "{currentWord.incorrect_word}"
+          Incorrect: &quot;{currentWord.incorrect_word}&quot;
         </Text>
+
+        <TouchableOpacity style={styles.speakButton} onPress={speakWord}>
+          <Ionicons name="volume-high" size={20} color="#FFFFFF" />
+          <Text style={styles.speakButtonText}>Hear Correct Word</Text>
+        </TouchableOpacity>
 
         <View style={styles.wordContainer}>
           {currentWord.correct_word.split("").map((letter, index) => (
@@ -195,6 +212,20 @@ const styles = StyleSheet.create({
     color: "#EF4444",
     marginBottom: 8,
     fontStyle: "italic",
+  },
+  speakButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#8B5CF6",
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 16,
+    gap: 6,
+  },
+  speakButtonText: {
+    color: "#FFFFFF",
+    fontSize: 14,
+    fontWeight: "600",
   },
   correctWordSection: {
     flexDirection: "row",

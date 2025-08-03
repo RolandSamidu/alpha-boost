@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import TTSHelper from "../utils/ttsHelper";
 
 const TranspositionGame = ({ suggestionWords, onGameComplete }) => {
   const [currentWordIndex, setCurrentWordIndex] = useState(0);
@@ -21,6 +22,18 @@ const TranspositionGame = ({ suggestionWords, onGameComplete }) => {
       setGameWords(suggestionWords.slice(0, 5));
     }
   }, [suggestionWords]);
+
+  useEffect(() => {
+    // Initialize TTS
+    TTSHelper.initialize();
+  }, []);
+
+  const speakWord = async () => {
+    const currentWord = gameWords[currentWordIndex];
+    if (currentWord && currentWord.correct_word) {
+      await TTSHelper.speak(currentWord.correct_word);
+    }
+  };
 
   useEffect(() => {
     if (gameWords[currentWordIndex]) {
@@ -121,6 +134,11 @@ const TranspositionGame = ({ suggestionWords, onGameComplete }) => {
         <Text style={styles.incorrectWord}>
           Common mistake: {currentWord.incorrect_word}
         </Text>
+
+        <TouchableOpacity style={styles.speakButton} onPress={speakWord}>
+          <Ionicons name="volume-high" size={20} color="#FFFFFF" />
+          <Text style={styles.speakButtonText}>Hear Correct Word</Text>
+        </TouchableOpacity>
 
         <View style={styles.answerArea}>
           <Text style={styles.answerLabel}>Your Answer:</Text>
@@ -229,6 +247,20 @@ const styles = StyleSheet.create({
     color: "#EF4444",
     marginBottom: 20,
     fontStyle: "italic",
+  },
+  speakButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#8B5CF6",
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 16,
+    gap: 6,
+  },
+  speakButtonText: {
+    color: "#FFFFFF",
+    fontSize: 14,
+    fontWeight: "600",
   },
   answerArea: {
     width: "100%",

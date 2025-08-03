@@ -40,8 +40,9 @@ const LoginScreen = () => {
       const result = await login(email, password);
 
       if (result.success) {
-        // Navigation will be handled by the auth state change
         console.log("Login successful");
+        // Navigate to home screen after successful login
+        router.replace("/");
       } else {
         Alert.alert("Login Failed", result.error);
       }

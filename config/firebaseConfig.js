@@ -1,21 +1,33 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { initializeApp } from "firebase/app";
-import { getReactNativePersistence, initializeAuth } from "firebase/auth";
+import {
+  getAuth,
+  getReactNativePersistence,
+  initializeAuth,
+} from "firebase/auth";
 
 const firebaseConfig = {
-  apiKey: "your-api-key-here",
-  authDomain: "your-project.firebaseapp.com",
-  projectId: "your-project-id",
-  storageBucket: "your-project.appspot.com",
-  messagingSenderId: "123456789",
-  appId: "your-app-id",
+  apiKey: "AIzaSyACwHjpbb3y_Ii3485BAxWym7gr5-MW0PU",
+  authDomain: "alpha-boost-52c36.firebaseapp.com",
+  projectId: "alpha-boost-52c36",
+  storageBucket: "alpha-boost-52c36.firebasestorage.app",
+  messagingSenderId: "1047255783955",
+  appId: "1:1047255783955:android:b6415aaa845a0d84d17de6",
 };
 
 const app = initializeApp(firebaseConfig);
 
-const auth = initializeAuth(app, {
-  persistence: getReactNativePersistence(AsyncStorage),
-});
+// Initialize Auth with error handling for AsyncStorage
+let auth;
+try {
+  auth = initializeAuth(app, {
+    persistence: getReactNativePersistence(AsyncStorage),
+  });
+} catch (error) {
+  // Fallback to default auth if AsyncStorage initialization fails
+  console.warn("AsyncStorage persistence failed, using default auth:", error);
+  auth = getAuth(app);
+}
 
 export { auth };
 export default app;

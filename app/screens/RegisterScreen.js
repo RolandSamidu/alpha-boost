@@ -80,7 +80,12 @@ const RegisterScreen = () => {
         Alert.alert(
           "Success!",
           "Account created successfully. Welcome to Alpha Boost!",
-          [{ text: "OK" }]
+          [
+            {
+              text: "OK",
+              onPress: () => router.replace("/"),
+            },
+          ]
         );
       } else {
         Alert.alert("Registration Failed", result.error);

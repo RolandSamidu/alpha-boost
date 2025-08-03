@@ -24,6 +24,10 @@ export const AuthProvider = ({ children }) => {
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
+      console.log(
+        "Auth state changed:",
+        user ? `User: ${user.email}` : "No user"
+      );
       setUser(user);
       setLoading(false);
     });
@@ -48,7 +52,6 @@ export const AuthProvider = ({ children }) => {
         password
       );
 
-      // Update display name if provided
       if (displayName) {
         await updateProfile(result.user, { displayName });
       }

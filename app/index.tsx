@@ -18,13 +18,13 @@ export default function HomeScreen() {
   const { user, loading } = useAuth();
 
   useEffect(() => {
+    console.log("Auth state changed:", { user: !!user, loading });
     if (!loading && !user) {
-      // Redirect to login if not authenticated
-      router.push("/auth/login");
+      console.log("Redirecting to login");
+      router.replace("/auth/login");
     }
   }, [user, loading, router]);
 
-  // Show loading or redirect while checking auth
   if (loading || !user) {
     return (
       <View style={styles.loadingContainer}>

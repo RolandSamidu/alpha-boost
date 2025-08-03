@@ -20,13 +20,13 @@ import {
 } from "../../services/apiService";
 import AppBar from "../components/AppBar";
 import PlayerNameModal from "../components/PlayerNameModal";
-import { audioMap } from "./audioMap";
-import { imageMap } from "./imageMap";
 import AdditionGame from "../games/AdditionGame";
 import LetterPhonemeGame from "../games/LetterPhonemeGame";
 import OmissionGame from "../games/OmissionGame";
 import SilentLettersGame from "../games/SilentLettersGame";
 import TranspositionGame from "../games/TranspositionGame";
+import { audioMap } from "./audioMap";
+import { imageMap } from "./imageMap";
 
 const getRandomItems = (array, count) => {
   const shuffled = [...array].sort(() => 0.5 - Math.random());
@@ -145,8 +145,10 @@ const ActivitiesScreen = () => {
     );
   };
 
-  const showGameSelection = () => {
-    if (!apiResult || !apiResult.grouped_analysis) {
+  const showGameSelection = (result = null) => {
+    const analysisResult = result || apiResult;
+
+    if (!analysisResult || !analysisResult.grouped_analysis) {
       Alert.alert(
         "No Games Available",
         "No spelling errors found to practice with!"
@@ -154,7 +156,7 @@ const ActivitiesScreen = () => {
       return;
     }
 
-    const { grouped_analysis } = apiResult;
+    const { grouped_analysis } = analysisResult;
     const availableGames = [];
 
     if (
@@ -293,7 +295,7 @@ const ActivitiesScreen = () => {
       Alert.alert("Error", "Invalid API response");
       return;
     }
-
+    console.log("Spelling Check Results:", result);
     const { summary, individual_results, grouped_analysis } = result;
 
     setApiResult(result);
@@ -321,7 +323,7 @@ const ActivitiesScreen = () => {
       Alert.alert("Spelling Results", message, [
         {
           text: "Play Games",
-          onPress: () => showGameSelection(),
+          onPress: () => showGameSelection(result),
         },
         {
           text: "OK",
@@ -384,9 +386,10 @@ const ActivitiesScreen = () => {
 
   const goToNext = () => {
     const trimmedInput = inputText.trim();
-    const newInputWords = trimmedInput
-      ? [...inputWords, trimmedInput]
-      : inputWords;
+    const newInputWords =
+      trimmedInput && !inputWords.includes(trimmedInput)
+        ? [...inputWords, trimmedInput]
+        : inputWords;
     setInputWords(newInputWords);
 
     if (currentIndex < selectedData.length - 1) {

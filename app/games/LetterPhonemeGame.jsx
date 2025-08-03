@@ -34,7 +34,6 @@ const LetterPhonemeGame = ({ suggestionWords, onGameComplete }) => {
     }
   };
 
-
   const currentWord = gameWords[currentWordIndex];
 
   const checkAnswer = () => {
@@ -96,51 +95,6 @@ const LetterPhonemeGame = ({ suggestionWords, onGameComplete }) => {
       }
     }
     return "Listen carefully to the sounds";
-  };
-
-  const getPhoneticSpelling = (word) => {
-    const phoneticMap = {
-      // Common words with phonetic spellings
-      nation: "NAY-shun",
-      grocery: "GROH-sur-ee",
-      player: "PLAY-er",
-      bright: "BRYTE",
-      cipher: "SY-fur",
-      condemn: "kuhn-DEM",
-      wrinkle: "RING-kul",
-      align: "uh-LYNE",
-      wrought: "RAWT",
-      wreath: "REETH",
-      important: "im-POR-tunt",
-      education: "ed-yoo-KAY-shun",
-      chocolate: "CHAWK-lit",
-      dinosaur: "DY-nuh-sawr",
-      hospital: "HOS-pi-tul",
-      vegetable: "VEJ-tuh-bul",
-      sandwich: "SAND-wich",
-      neighbor: "NAY-bur",
-      different: "DIF-ur-unt",
-      umbrella: "uhm-BREL-uh",
-      question: "KWES-chun",
-      furniture: "FUR-ni-chur",
-      exercise: "EK-sur-syze",
-      monkey: "MUNG-kee",
-      captain: "KAP-tin",
-      yellow: "YEL-oh",
-      weather: "WETH-ur",
-      window: "WIN-doh",
-    };
-
-    // Return phonetic spelling if available, otherwise create a simple one
-    if (phoneticMap[word.toLowerCase()]) {
-      return phoneticMap[word.toLowerCase()];
-    }
-
-    // Create a basic phonetic guide by breaking into syllables
-    const syllables = word
-      .toLowerCase()
-      .match(/[aeiou]+[^aeiou]*|[^aeiou]+/g) || [word];
-    return syllables.join("-").toUpperCase();
   };
 
   if (!currentWord) {

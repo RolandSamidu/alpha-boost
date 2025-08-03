@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import React from "react";
+import React, { useEffect } from "react";
 import {
   ScrollView,
   StyleSheet,
@@ -8,16 +8,38 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { useAuth } from "../contexts/AuthContext";
 import AppBar from "./components/AppBar";
 import DashboardCard from "./components/DashboardCard";
+import LogoutButton from "./components/LogoutButton";
 
 export default function HomeScreen() {
   const router = useRouter();
+  const { user, loading } = useAuth();
+
+  useEffect(() => {
+    if (!loading && !user) {
+      // Redirect to login if not authenticated
+      router.push("/auth/login");
+    }
+  }, [user, loading, router]);
+
+  // Show loading or redirect while checking auth
+  if (loading || !user) {
+    return (
+      <View style={styles.loadingContainer}>
+        <Text style={styles.loadingText}>Loading...</Text>
+      </View>
+    );
+  }
 
   const rightAction = (
-    <TouchableOpacity style={styles.profileButton}>
-      <Ionicons name="person-circle" size={32} color="#FFFFFF" />
-    </TouchableOpacity>
+    <View style={styles.rightActions}>
+      <TouchableOpacity style={styles.profileButton}>
+        <Ionicons name="person-circle" size={32} color="#FFFFFF" />
+      </TouchableOpacity>
+      <LogoutButton style={styles.logoutButton} />
+    </View>
   );
 
   return (
@@ -85,8 +107,26 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
   },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#F8FAFC",
+  },
+  loadingText: {
+    fontSize: 18,
+    color: "#6B7280",
+  },
+  rightActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
   profileButton: {
     padding: 4,
+  },
+  logoutButton: {
+    marginLeft: 8,
   },
   welcomeSection: {
     padding: 20,

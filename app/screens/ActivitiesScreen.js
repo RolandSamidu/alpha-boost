@@ -19,6 +19,7 @@ import {
   handleApiError,
 } from "../../services/apiService";
 import AppBar from "../components/AppBar";
+import LogoutButton from "../components/LogoutButton";
 import PlayerNameModal from "../components/PlayerNameModal";
 import AdditionGame from "../games/AdditionGame";
 import LetterPhonemeGame from "../games/LetterPhonemeGame";
@@ -423,7 +424,11 @@ const ActivitiesScreen = () => {
 
   return (
     <ScrollView style={styles.container}>
-      <AppBar title="Learning Activities" showBackButton={true} />
+      <AppBar
+        title="Learning Activities"
+        showBackButton={true}
+        rightAction={<LogoutButton />}
+      />
 
       <View style={styles.content}>
         <View

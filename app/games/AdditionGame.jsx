@@ -92,7 +92,7 @@ const AdditionGame = ({ suggestionWords, onGameComplete }) => {
       setSelectedLetters([]);
     } else {
       const finalScore = score + (checkCurrentAnswer() ? 10 : 0);
-      onGameComplete("Extra Letters Game", finalScore);
+      onGameComplete("Extra Letters Game", finalScore, gameWords.length);
     }
   };
 

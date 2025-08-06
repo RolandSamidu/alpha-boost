@@ -9,6 +9,8 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { useAuth } from "../../contexts/AuthContext";
+import GameScoreService from "../../services/gameScoreService";
 import { ScoreService } from "../../services/scoreService";
 
 const PlayerNameModal = ({
@@ -18,7 +20,9 @@ const PlayerNameModal = ({
   gameTitle,
   score,
   errorTypes,
+  totalQuestions,
 }) => {
+  const { user } = useAuth();
   const [playerName, setPlayerName] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
@@ -56,6 +60,30 @@ const PlayerNameModal = ({
         errorTypes
       );
 
+      if (user && user.uid) {
+        const gameData = {
+          playerName: playerName.trim(),
+          gameTitle,
+          score,
+          totalQuestions,
+          errorTypes,
+          gameType: "spelling-game",
+        };
+
+        const firebaseResult = await GameScoreService.saveGameScore(
+          user.uid,
+          gameData
+        );
+        if (firebaseResult.success) {
+          console.log("Game score saved to Firebase");
+        } else {
+          console.warn(
+            "Failed to save score to Firebase:",
+            firebaseResult.error
+          );
+        }
+      }
+
       await ScoreService.savePlayerName(playerName.trim());
 
       onSave(savedScore);
@@ -87,7 +115,12 @@ const PlayerNameModal = ({
 
           <View style={styles.scoreInfo}>
             <Text style={styles.gameTitle}>{gameTitle}</Text>
-            <Text style={styles.scoreText}>Score: {score} points</Text>
+            <Text style={styles.scoreText}>
+              Score:{" "}
+              {totalQuestions
+                ? `${score}/${totalQuestions}`
+                : `${score} points`}
+            </Text>
             {errorTypes && errorTypes.length > 0 && (
               <View style={styles.errorTypesContainer}>
                 <Text style={styles.errorTypesLabel}>Practiced:</Text>

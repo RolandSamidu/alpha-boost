@@ -3,6 +3,7 @@ import { useFocusEffect } from "@react-navigation/native";
 import { useCallback, useState } from "react";
 import {
   Alert,
+  Dimensions,
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -10,160 +11,358 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { ScoreService } from "../../services/scoreService";
+import { BarChart, LineChart } from "react-native-chart-kit";
+import { useAuth } from "../../contexts/AuthContext";
+import AnalyticsService from "../../services/analyticsService";
 import AppBar from "../components/AppBar";
 
+const { width: screenWidth } = Dimensions.get("window");
+const chartWidth = screenWidth - 32;
+
 const ProgressScreen = () => {
-  const [scores, setScores] = useState([]);
-  const [playerStats, setPlayerStats] = useState(null);
-  const [currentPlayer, setCurrentPlayer] = useState("");
+  const { user } = useAuth();
+  const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [viewMode, setViewMode] = useState("recent"); // 'recent', 'leaderboard', 'stats'
+  const [viewMode, setViewMode] = useState("daily");
+  const [dailyData, setDailyData] = useState([]);
+  const [weeklyData, setWeeklyData] = useState([]);
+  const [overallStats, setOverallStats] = useState(null);
+
+  const loadAnalytics = useCallback(async () => {
+    try {
+      setLoading(true);
+
+      const [dailyResult, weeklyResult, overallResult] = await Promise.all([
+        AnalyticsService.getDailyProgress(user.uid, 5),
+        AnalyticsService.getWeeklyProgress(user.uid, 4),
+        AnalyticsService.getUserOverallStats(user.uid),
+      ]);
+
+      if (dailyResult.success) {
+        setDailyData(dailyResult.dailyData);
+      }
+
+      if (weeklyResult.success) {
+        setWeeklyData(weeklyResult.weeklyData);
+      }
+
+      if (overallResult.success) {
+        setOverallStats(overallResult.stats);
+      }
+    } catch (error) {
+      console.error("Error loading analytics:", error);
+      Alert.alert("Error", "Failed to load analytics data");
+    } finally {
+      setLoading(false);
+    }
+  }, [user]);
 
   useFocusEffect(
     useCallback(() => {
-      loadData();
-    }, [loadData])
+      if (user) {
+        loadAnalytics();
+      }
+    }, [user, loadAnalytics])
   );
-
-  const loadData = useCallback(async () => {
-    try {
-      const playerName = await ScoreService.getPlayerName();
-      setCurrentPlayer(playerName);
-
-      if (viewMode === "recent") {
-        const allScores = await ScoreService.getAllScores();
-        setScores(allScores.slice(0, 20));
-      } else if (viewMode === "leaderboard") {
-        const topScores = await ScoreService.getTopScores(20);
-        setScores(topScores);
-      }
-
-      if (playerName) {
-        const stats = await ScoreService.getPlayerStats(playerName);
-        setPlayerStats(stats);
-      }
-    } catch (error) {
-      console.error("Error loading data:", error);
-      Alert.alert("Error", "Failed to load progress data");
-    }
-  }, [viewMode]);
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await loadData();
+    await loadAnalytics();
     setRefreshing(false);
   };
 
-  const changeViewMode = (mode) => {
-    setViewMode(mode);
-    loadData();
+  const chartConfig = {
+    backgroundGradientFrom: "#ffffff",
+    backgroundGradientTo: "#ffffff",
+    decimalPlaces: 0,
+    color: (opacity = 1) => `rgba(59, 130, 246, ${opacity})`,
+    labelColor: (opacity = 1) => `rgba(107, 114, 128, ${opacity})`,
+    style: {
+      borderRadius: 16,
+    },
+    propsForDots: {
+      r: "4",
+      strokeWidth: "2",
+      stroke: "#3B82F6",
+    },
   };
 
-  const clearAllData = () => {
-    Alert.alert(
-      "Clear All Data",
-      "Are you sure you want to delete all saved scores? This action cannot be undone.",
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Delete All",
-          style: "destructive",
-          onPress: async () => {
-            try {
-              await ScoreService.clearAllScores();
-              setScores([]);
-              setPlayerStats(null);
-              Alert.alert("Success", "All scores have been cleared");
-            } catch (_error) {
-              Alert.alert("Error", "Failed to clear scores");
-            }
-          },
-        },
-      ]
+  const renderDailyView = () => {
+    if (!dailyData || dailyData.length === 0) {
+      return (
+        <View style={styles.emptyState}>
+          <Ionicons name="calendar-outline" size={48} color="#D1D5DB" />
+          <Text style={styles.emptyStateText}>No daily data yet</Text>
+          <Text style={styles.emptyStateSubtext}>
+            Start playing games to see your daily progress!
+          </Text>
+        </View>
+      );
+    }
+
+    const labels = dailyData.map((day) =>
+      new Date(day.date).toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+      })
+    );
+
+    const gameData = dailyData.map((day) => day.gamesPlayed);
+    const scoreData = dailyData.map((day) => day.totalScore);
+
+    return (
+      <View style={styles.analyticsContainer}>
+        <Text style={styles.sectionTitle}>Daily Progress (Last 5 Days)</Text>
+
+        <View style={styles.chartContainer}>
+          <Text style={styles.chartTitle}>Games Played Daily</Text>
+          <LineChart
+            data={{
+              labels,
+              datasets: [{ data: gameData.length > 0 ? gameData : [0] }],
+            }}
+            width={chartWidth}
+            height={200}
+            chartConfig={chartConfig}
+            bezier
+            style={styles.chart}
+          />
+        </View>
+
+        <View style={styles.chartContainer}>
+          <Text style={styles.chartTitle}>Daily Score Totals</Text>
+          <BarChart
+            data={{
+              labels,
+              datasets: [{ data: scoreData.length > 0 ? scoreData : [0] }],
+            }}
+            width={chartWidth}
+            height={200}
+            chartConfig={chartConfig}
+            style={styles.chart}
+          />
+        </View>
+
+        <View style={styles.statsGrid}>
+          {dailyData
+            .slice(-3)
+            .reverse()
+            .map((day, index) => (
+              <View key={day.date} style={styles.dayStatCard}>
+                <Text style={styles.dayStatDate}>
+                  {new Date(day.date).toLocaleDateString("en-US", {
+                    weekday: "short",
+                    month: "short",
+                    day: "numeric",
+                  })}
+                </Text>
+                <View style={styles.dayStatRow}>
+                  <Ionicons name="game-controller" size={16} color="#3B82F6" />
+                  <Text style={styles.dayStatText}>
+                    {day.gamesPlayed} games
+                  </Text>
+                </View>
+                <View style={styles.dayStatRow}>
+                  <Ionicons name="trophy" size={16} color="#F59E0B" />
+                  <Text style={styles.dayStatText}>{day.totalScore} pts</Text>
+                </View>
+              </View>
+            ))}
+        </View>
+      </View>
     );
   };
 
-  const renderScoreItem = (score, index) => (
-    <View key={score.id} style={styles.scoreItem}>
-      <View style={styles.scoreHeader}>
-        <View style={styles.playerInfo}>
-          <Ionicons name="person" size={16} color="#3B82F6" />
-          <Text style={styles.playerName}>{score.playerName}</Text>
+  const renderWeeklyView = () => {
+    if (!weeklyData || weeklyData.length === 0) {
+      return (
+        <View style={styles.emptyState}>
+          <Ionicons name="calendar" size={48} color="#D1D5DB" />
+          <Text style={styles.emptyStateText}>No weekly data yet</Text>
+          <Text style={styles.emptyStateSubtext}>
+            Keep playing to see weekly trends!
+          </Text>
         </View>
-        <Text style={styles.scoreValue}>{score.score} pts</Text>
-      </View>
+      );
+    }
 
-      <Text style={styles.gameTitle}>{score.gameTitle}</Text>
+    const labels = weeklyData.map(
+      (week, index) => `Week ${weeklyData.length - index}`
+    );
+    const weeklyGames = weeklyData.map((week) => week.gamesPlayed);
+    const weeklyScores = weeklyData.map((week) => week.totalScore);
 
-      {score.errorTypes && score.errorTypes.length > 0 && (
-        <View style={styles.errorTypesContainer}>
-          {score.errorTypes.map((errorType, idx) => (
-            <View key={idx} style={styles.errorTypeBadge}>
-              <Text style={styles.errorTypeText}>{errorType}</Text>
+    return (
+      <View style={styles.analyticsContainer}>
+        <Text style={styles.sectionTitle}>Weekly Progress (Last 4 Weeks)</Text>
+
+        <View style={styles.chartContainer}>
+          <Text style={styles.chartTitle}>Games Per Week</Text>
+          <BarChart
+            data={{
+              labels,
+              datasets: [{ data: weeklyGames.length > 0 ? weeklyGames : [0] }],
+            }}
+            width={chartWidth}
+            height={200}
+            chartConfig={chartConfig}
+            style={styles.chart}
+          />
+        </View>
+
+        <View style={styles.chartContainer}>
+          <Text style={styles.chartTitle}>Weekly Score Totals</Text>
+          <LineChart
+            data={{
+              labels,
+              datasets: [
+                { data: weeklyScores.length > 0 ? weeklyScores : [0] },
+              ],
+            }}
+            width={chartWidth}
+            height={200}
+            chartConfig={chartConfig}
+            bezier
+            style={styles.chart}
+          />
+        </View>
+
+        <View style={styles.weeklyCardsContainer}>
+          {weeklyData.map((week, index) => (
+            <View key={week.weekStart} style={styles.weekCard}>
+              <Text style={styles.weekTitle}>
+                Week {weeklyData.length - index}
+              </Text>
+              <Text style={styles.weekDates}>
+                {new Date(week.weekStart).toLocaleDateString()} -{" "}
+                {new Date(week.weekEnd).toLocaleDateString()}
+              </Text>
+
+              <View style={styles.weekStats}>
+                <View style={styles.weekStatItem}>
+                  <Ionicons name="game-controller" size={18} color="#3B82F6" />
+                  <Text style={styles.weekStatValue}>{week.gamesPlayed}</Text>
+                  <Text style={styles.weekStatLabel}>Games</Text>
+                </View>
+
+                <View style={styles.weekStatItem}>
+                  <Ionicons name="trophy" size={18} color="#F59E0B" />
+                  <Text style={styles.weekStatValue}>{week.totalScore}</Text>
+                  <Text style={styles.weekStatLabel}>Total Score</Text>
+                </View>
+
+                <View style={styles.weekStatItem}>
+                  <Ionicons name="trending-up" size={18} color="#10B981" />
+                  <Text style={styles.weekStatValue}>{week.averageScore}</Text>
+                  <Text style={styles.weekStatLabel}>Avg Score</Text>
+                </View>
+              </View>
+
+              {week.bestDay && (
+                <View style={styles.weekHighlight}>
+                  <Ionicons name="star" size={14} color="#8B5CF6" />
+                  <Text style={styles.weekHighlightText}>
+                    Best day:{" "}
+                    {new Date(week.bestDay).toLocaleDateString("en-US", {
+                      weekday: "short",
+                    })}
+                  </Text>
+                </View>
+              )}
             </View>
           ))}
         </View>
-      )}
-
-      <View style={styles.scoreFooter}>
-        <Text style={styles.scoreDate}>{score.date}</Text>
-        <Text style={styles.scoreTime}>{score.time}</Text>
       </View>
-    </View>
-  );
+    );
+  };
 
-  const renderPlayerStats = () => {
-    if (!playerStats || !currentPlayer) return null;
+  const renderOverviewView = () => {
+    if (!overallStats) {
+      return (
+        <View style={styles.emptyState}>
+          <Ionicons name="analytics" size={48} color="#D1D5DB" />
+          <Text style={styles.emptyStateText}>No data available</Text>
+          <Text style={styles.emptyStateSubtext}>
+            Start your learning journey!
+          </Text>
+        </View>
+      );
+    }
 
     return (
-      <View style={styles.statsContainer}>
-        <Text style={styles.statsTitle}>Your Progress - {currentPlayer}</Text>
+      <View style={styles.analyticsContainer}>
+        <Text style={styles.sectionTitle}>Overall Statistics</Text>
 
-        <View style={styles.statsGrid}>
-          <View style={styles.statItem}>
-            <Ionicons name="trophy" size={24} color="#F59E0B" />
-            <Text style={styles.statValue}>{playerStats.bestScore}</Text>
-            <Text style={styles.statLabel}>Best Score</Text>
+        <View style={styles.overviewGrid}>
+          <View style={styles.overviewCard}>
+            <Ionicons name="flame" size={32} color="#EF4444" />
+            <Text style={styles.overviewValue}>
+              {overallStats.currentStreak}
+            </Text>
+            <Text style={styles.overviewLabel}>Day Streak</Text>
           </View>
 
-          <View style={styles.statItem}>
-            <Ionicons name="calculator" size={24} color="#3B82F6" />
-            <Text style={styles.statValue}>{playerStats.averageScore}</Text>
-            <Text style={styles.statLabel}>Average</Text>
+          <View style={styles.overviewCard}>
+            <Ionicons name="trophy" size={32} color="#F59E0B" />
+            <Text style={styles.overviewValue}>
+              {overallStats.longestStreak}
+            </Text>
+            <Text style={styles.overviewLabel}>Best Streak</Text>
           </View>
 
-          <View style={styles.statItem}>
-            <Ionicons name="game-controller" size={24} color="#059669" />
-            <Text style={styles.statValue}>{playerStats.totalGames}</Text>
-            <Text style={styles.statLabel}>Games Played</Text>
+          <View style={styles.overviewCard}>
+            <Ionicons name="game-controller" size={32} color="#3B82F6" />
+            <Text style={styles.overviewValue}>{overallStats.totalGames}</Text>
+            <Text style={styles.overviewLabel}>Games Played</Text>
           </View>
 
-          <View style={styles.statItem}>
-            <Ionicons name="star" size={24} color="#8B5CF6" />
-            <Text style={styles.statValue}>{playerStats.totalScore}</Text>
-            <Text style={styles.statLabel}>Total Score</Text>
+          <View style={styles.overviewCard}>
+            <Ionicons name="document-text" size={32} color="#8B5CF6" />
+            <Text style={styles.overviewValue}>
+              {overallStats.totalSpellingChecks}
+            </Text>
+            <Text style={styles.overviewLabel}>Spelling Checks</Text>
           </View>
         </View>
 
-        {Object.keys(playerStats.errorTypeStats).length > 0 && (
-          <View style={styles.errorStatsContainer}>
-            <Text style={styles.errorStatsTitle}>
-              Most Practiced Error Types:
+        <View style={styles.performanceContainer}>
+          <Text style={styles.performanceTitle}>Performance Metrics</Text>
+
+          <View style={styles.metricRow}>
+            <Text style={styles.metricLabel}>Average Game Score</Text>
+            <Text style={styles.metricValue}>
+              {overallStats.averageGameScore} pts
             </Text>
-            <View style={styles.errorStatsList}>
-              {Object.entries(playerStats.errorTypeStats)
-                .sort(([, a], [, b]) => b - a)
-                .slice(0, 3)
-                .map(([errorType, count]) => (
-                  <View key={errorType} style={styles.errorStatItem}>
-                    <Text style={styles.errorStatType}>{errorType}</Text>
-                    <Text style={styles.errorStatCount}>{count} times</Text>
-                  </View>
-                ))}
+          </View>
+
+          <View style={styles.metricRow}>
+            <Text style={styles.metricLabel}>Total Score Earned</Text>
+            <Text style={styles.metricValue}>
+              {overallStats.totalScore.toLocaleString()} pts
+            </Text>
+          </View>
+
+          <View style={styles.metricRow}>
+            <Text style={styles.metricLabel}>Words Checked</Text>
+            <Text style={styles.metricValue}>
+              {overallStats.totalWordsChecked.toLocaleString()}
+            </Text>
+          </View>
+        </View>
+
+        <View style={styles.preferencesContainer}>
+          <Text style={styles.preferencesTitle}>Error Analysis</Text>
+
+          <View style={styles.preferenceItem}>
+            <Ionicons name="warning" size={20} color="#F59E0B" />
+            <View style={styles.preferenceText}>
+              <Text style={styles.preferenceLabel}>Most Common Error</Text>
+              <Text style={styles.preferenceValue}>
+                {overallStats.mostCommonError}
+              </Text>
             </View>
           </View>
-        )}
+        </View>
       </View>
     );
   };
@@ -175,79 +374,88 @@ const ProgressScreen = () => {
         <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
       }
     >
-      <AppBar title="Progress Tracker" showBackButton={true} />
+      <AppBar title="Analytics Dashboard" showBackButton={true} />
 
       <View style={styles.content}>
-        {renderPlayerStats()}
-
         <View style={styles.viewModeContainer}>
           <TouchableOpacity
             style={[
               styles.viewModeButton,
-              viewMode === "recent" && styles.activeViewMode,
+              viewMode === "daily" && styles.activeViewMode,
             ]}
-            onPress={() => changeViewMode("recent")}
+            onPress={() => setViewMode("daily")}
           >
             <Ionicons
-              name="time"
+              name="calendar-outline"
               size={16}
-              color={viewMode === "recent" ? "#FFFFFF" : "#6B7280"}
+              color={viewMode === "daily" ? "#FFFFFF" : "#6B7280"}
             />
             <Text
               style={[
                 styles.viewModeText,
-                viewMode === "recent" && styles.activeViewModeText,
+                viewMode === "daily" && styles.activeViewModeText,
               ]}
             >
-              Recent
+              Daily
             </Text>
           </TouchableOpacity>
 
           <TouchableOpacity
             style={[
               styles.viewModeButton,
-              viewMode === "leaderboard" && styles.activeViewMode,
+              viewMode === "weekly" && styles.activeViewMode,
             ]}
-            onPress={() => changeViewMode("leaderboard")}
+            onPress={() => setViewMode("weekly")}
           >
             <Ionicons
-              name="podium"
+              name="calendar"
               size={16}
-              color={viewMode === "leaderboard" ? "#FFFFFF" : "#6B7280"}
+              color={viewMode === "weekly" ? "#FFFFFF" : "#6B7280"}
             />
             <Text
               style={[
                 styles.viewModeText,
-                viewMode === "leaderboard" && styles.activeViewModeText,
+                viewMode === "weekly" && styles.activeViewModeText,
               ]}
             >
-              Top Scores
+              Weekly
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[
+              styles.viewModeButton,
+              viewMode === "overview" && styles.activeViewMode,
+            ]}
+            onPress={() => setViewMode("overview")}
+          >
+            <Ionicons
+              name="analytics"
+              size={16}
+              color={viewMode === "overview" ? "#FFFFFF" : "#6B7280"}
+            />
+            <Text
+              style={[
+                styles.viewModeText,
+                viewMode === "overview" && styles.activeViewModeText,
+              ]}
+            >
+              Overview
             </Text>
           </TouchableOpacity>
         </View>
 
-        <View style={styles.scoresContainer}>
-          <View style={styles.scoresHeader}>
-            <Text style={styles.scoresTitle}>
-              {viewMode === "recent" ? "Recent Games" : "Leaderboard"}
-            </Text>
-            <TouchableOpacity onPress={clearAllData} style={styles.clearButton}>
-              <Ionicons name="trash" size={16} color="#EF4444" />
-            </TouchableOpacity>
+        {loading ? (
+          <View style={styles.loadingContainer}>
+            <Text style={styles.loadingText}>Loading analytics...</Text>
           </View>
-
-          {scores.length === 0 ? (
-            <View style={styles.emptyState}>
-              <Ionicons name="analytics" size={48} color="#D1D5DB" />
-              <Text style={styles.emptyStateText}>No scores yet</Text>
-              <Text style={styles.emptyStateSubtext}>
-                Play some games to start tracking your progress!
-              </Text>
-            </View>
-          ) : (
-            scores.map(renderScoreItem)
-          )}
-        </View>
+        ) : (
+          <>
+            {viewMode === "daily" && renderDailyView()}
+            {viewMode === "weekly" && renderWeeklyView()}
+            {viewMode === "overview" && renderOverviewView()}
+          </>
+        )}
       </View>
     </ScrollView>
   );
@@ -261,80 +469,15 @@ const styles = StyleSheet.create({
   content: {
     padding: 16,
   },
-  statsContainer: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 16,
-    padding: 20,
-    marginBottom: 20,
-    elevation: 2,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-  },
-  statsTitle: {
-    fontSize: 18,
-    fontWeight: "bold",
-    color: "#1F2937",
-    marginBottom: 16,
-    textAlign: "center",
-  },
-  statsGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    justifyContent: "space-between",
-    marginBottom: 20,
-  },
-  statItem: {
-    width: "48%",
-    backgroundColor: "#F9FAFB",
-    borderRadius: 12,
-    padding: 16,
-    alignItems: "center",
-    marginBottom: 12,
-  },
-  statValue: {
-    fontSize: 24,
-    fontWeight: "bold",
-    color: "#1F2937",
-    marginTop: 8,
-  },
-  statLabel: {
-    fontSize: 12,
-    color: "#6B7280",
-    marginTop: 4,
-  },
-  errorStatsContainer: {
-    borderTopWidth: 1,
-    borderTopColor: "#E5E7EB",
-    paddingTop: 16,
-  },
-  errorStatsTitle: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#374151",
-    marginBottom: 8,
-  },
-  errorStatsList: {
-    gap: 8,
-  },
-  errorStatItem: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    backgroundColor: "#F3F4F6",
-    borderRadius: 8,
-    padding: 8,
-  },
-  errorStatType: {
-    fontSize: 14,
-    color: "#374151",
+  loadingContainer: {
     flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 40,
   },
-  errorStatCount: {
-    fontSize: 12,
+  loadingText: {
+    fontSize: 16,
     color: "#6B7280",
-    fontWeight: "600",
   },
   viewModeContainer: {
     flexDirection: "row",
@@ -368,7 +511,17 @@ const styles = StyleSheet.create({
   activeViewModeText: {
     color: "#FFFFFF",
   },
-  scoresContainer: {
+  analyticsContainer: {
+    gap: 20,
+  },
+  sectionTitle: {
+    fontSize: 24,
+    fontWeight: "bold",
+    color: "#1F2937",
+    textAlign: "center",
+    marginBottom: 10,
+  },
+  chartContainer: {
     backgroundColor: "#FFFFFF",
     borderRadius: 16,
     padding: 16,
@@ -378,83 +531,209 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 2,
   },
-  scoresHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 16,
+  chartTitle: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#374151",
+    marginBottom: 12,
+    textAlign: "center",
   },
-  scoresTitle: {
+  chart: {
+    borderRadius: 16,
+  },
+  statsGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 12,
+  },
+  dayStatCard: {
+    flex: 1,
+    minWidth: "30%",
+    backgroundColor: "#FFFFFF",
+    borderRadius: 12,
+    padding: 12,
+    elevation: 1,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 1,
+  },
+  dayStatDate: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#6B7280",
+    marginBottom: 8,
+    textAlign: "center",
+  },
+  dayStatRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    marginBottom: 4,
+  },
+  dayStatText: {
+    fontSize: 12,
+    color: "#374151",
+  },
+  weeklyCardsContainer: {
+    gap: 16,
+  },
+  weekCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 16,
+    padding: 16,
+    elevation: 2,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+  },
+  weekTitle: {
     fontSize: 18,
     fontWeight: "bold",
     color: "#1F2937",
+    textAlign: "center",
   },
-  clearButton: {
-    padding: 8,
+  weekDates: {
+    fontSize: 12,
+    color: "#6B7280",
+    textAlign: "center",
+    marginBottom: 16,
   },
-  scoreItem: {
-    backgroundColor: "#F9FAFB",
-    borderRadius: 12,
-    padding: 16,
+  weekStats: {
+    flexDirection: "row",
+    justifyContent: "space-around",
     marginBottom: 12,
-    borderLeftWidth: 4,
-    borderLeftColor: "#3B82F6",
   },
-  scoreHeader: {
+  weekStatItem: {
+    alignItems: "center",
+    gap: 4,
+  },
+  weekStatValue: {
+    fontSize: 16,
+    fontWeight: "bold",
+    color: "#1F2937",
+  },
+  weekStatLabel: {
+    fontSize: 10,
+    color: "#6B7280",
+  },
+  weekHighlight: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 4,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: "#E5E7EB",
+  },
+  weekHighlightText: {
+    fontSize: 12,
+    color: "#8B5CF6",
+    fontWeight: "500",
+  },
+  overviewGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 12,
+    marginBottom: 20,
+  },
+  overviewCard: {
+    width: "48%",
+    backgroundColor: "#FFFFFF",
+    borderRadius: 16,
+    padding: 20,
+    alignItems: "center",
+    elevation: 2,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+  },
+  overviewValue: {
+    fontSize: 28,
+    fontWeight: "bold",
+    color: "#1F2937",
+    marginTop: 8,
+  },
+  overviewLabel: {
+    fontSize: 12,
+    color: "#6B7280",
+    marginTop: 4,
+    textAlign: "center",
+  },
+  performanceContainer: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 20,
+    elevation: 2,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+  },
+  performanceTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: "#1F2937",
+    marginBottom: 16,
+    textAlign: "center",
+  },
+  metricRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 8,
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: "#F3F4F6",
   },
-  playerInfo: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
+  metricLabel: {
+    fontSize: 14,
+    color: "#6B7280",
   },
-  playerName: {
+  metricValue: {
     fontSize: 16,
     fontWeight: "600",
     color: "#1F2937",
   },
-  scoreValue: {
+  preferencesContainer: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 16,
+    padding: 20,
+    elevation: 2,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+  },
+  preferencesTitle: {
     fontSize: 18,
     fontWeight: "bold",
-    color: "#059669",
+    color: "#1F2937",
+    marginBottom: 16,
+    textAlign: "center",
   },
-  gameTitle: {
-    fontSize: 14,
-    color: "#374151",
-    marginBottom: 8,
-  },
-  errorTypesContainer: {
+  preferenceItem: {
     flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 6,
-    marginBottom: 8,
-  },
-  errorTypeBadge: {
-    backgroundColor: "#EEF2FF",
-    borderRadius: 12,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-  },
-  errorTypeText: {
-    fontSize: 12,
-    color: "#3730A3",
-    fontWeight: "500",
-  },
-  scoreFooter: {
-    flexDirection: "row",
-    justifyContent: "space-between",
     alignItems: "center",
+    gap: 12,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: "#F3F4F6",
   },
-  scoreDate: {
-    fontSize: 12,
+  preferenceText: {
+    flex: 1,
+  },
+  preferenceLabel: {
+    fontSize: 14,
     color: "#6B7280",
   },
-  scoreTime: {
-    fontSize: 12,
-    color: "#6B7280",
+  preferenceValue: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#1F2937",
+    marginTop: 2,
   },
   emptyState: {
     alignItems: "center",

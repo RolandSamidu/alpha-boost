@@ -50,7 +50,6 @@ const TranspositionGame = ({ suggestionWords, onGameComplete }) => {
         id: Math.random(),
       }));
 
-      // Shuffle the letters
       const shuffled = [...letters].sort(() => Math.random() - 0.5);
       setScrambledLetters(shuffled);
       setUserAnswer([]);
@@ -98,7 +97,8 @@ const TranspositionGame = ({ suggestionWords, onGameComplete }) => {
           (userAnswer.length ===
           gameWords[currentWordIndex]?.correct_word.length
             ? 15
-            : 0)
+            : 0),
+        gameWords.length
       );
     }
   };

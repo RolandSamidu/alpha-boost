@@ -125,7 +125,8 @@ const OmissionGame = ({ suggestionWords, onGameComplete }) => {
     } else {
       onGameComplete(
         "Missing Letters Game",
-        score + (checkCurrentAnswer() ? 10 : 0)
+        score + (checkCurrentAnswer() ? 10 : 0),
+        gameWords.length
       );
     }
   };

@@ -91,7 +91,8 @@ const SilentLettersGame = ({ suggestionWords, onGameComplete }) => {
     } else {
       onGameComplete(
         "Silent Letters Game",
-        score + (selectedLetters.length > 0 ? 10 : 0)
+        score + (selectedLetters.length > 0 ? 10 : 0),
+        gameWords.length
       );
     }
   };

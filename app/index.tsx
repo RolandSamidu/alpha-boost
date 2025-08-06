@@ -48,7 +48,12 @@ export default function HomeScreen() {
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.welcomeSection}>
-          <Text style={styles.welcomeText}>Welcome back!</Text>
+          <Text style={styles.welcomeText}>
+            Welcome back{user?.displayName ? `, ${user.displayName}` : ""}!
+          </Text>
+          {/* {user?.email && (
+            <Text style={styles.welcomeSubtext}>{user.email}</Text>
+          )} */}
         </View>
 
         <Text style={styles.sectionTitle}>Learning Modules</Text>
@@ -78,19 +83,27 @@ export default function HomeScreen() {
         />
 
         <DashboardCard
-          title="Game Zone"
-          description="Fun spelling games to improve your skills"
-          icon="game-controller"
-          color="#F59E0B"
-          onPress={() => router.push("/screens/GameZoneScreen")}
-        />
-
-        <DashboardCard
           title="Progress Tracker"
           description="Monitor your learning journey"
           icon="analytics"
           color="#EF4444"
           onPress={() => router.push("/screens/ProgressScreen")}
+        />
+
+        <DashboardCard
+          title="Spelling History"
+          description="View your past spelling results and progress"
+          icon="time"
+          color="#F59E0B"
+          onPress={() => router.push("/screens/HistoryScreen")}
+        />
+
+        <DashboardCard
+          title="Game Scores"
+          description="View your game scores and achievements"
+          icon="trophy"
+          color="#8B5CF6"
+          onPress={() => router.push("/screens/GameScoresScreen")}
         />
 
         <View style={styles.bottomSpacing} />

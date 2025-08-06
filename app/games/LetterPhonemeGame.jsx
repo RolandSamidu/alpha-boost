@@ -69,7 +69,8 @@ const LetterPhonemeGame = ({ suggestionWords, onGameComplete }) => {
         score +
           (userAnswer.toLowerCase() === currentWord?.correct_word.toLowerCase()
             ? 12
-            : 0)
+            : 0),
+        gameWords.length
       );
     }
   };

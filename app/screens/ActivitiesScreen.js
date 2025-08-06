@@ -13,14 +13,16 @@ import {
   View,
 } from "react-native";
 import learningData from "../../assets/data/learningData.json";
+import { useAuth } from "../../contexts/AuthContext";
 import {
   checkWordsWithAPI as apiCheckWords,
   findWorkingAPI,
   handleApiError,
 } from "../../services/apiService";
+import GameScoreService from "../../services/gameScoreService";
+import HistoryService from "../../services/historyService";
 import AppBar from "../components/AppBar";
 import LogoutButton from "../components/LogoutButton";
-import PlayerNameModal from "../components/PlayerNameModal";
 import AdditionGame from "../games/AdditionGame";
 import LetterPhonemeGame from "../games/LetterPhonemeGame";
 import OmissionGame from "../games/OmissionGame";
@@ -35,6 +37,7 @@ const getRandomItems = (array, count) => {
 };
 
 const ActivitiesScreen = () => {
+  const { user } = useAuth();
   const [selectedData, setSelectedData] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [inputText, setInputText] = useState("");
@@ -47,9 +50,6 @@ const ActivitiesScreen = () => {
   const [currentGame, setCurrentGame] = useState(null);
   const [gameData, setGameData] = useState(null);
   const [apiResult, setApiResult] = useState(null);
-
-  const [showPlayerNameModal, setShowPlayerNameModal] = useState(false);
-  const [gameScoreData, setGameScoreData] = useState(null);
 
   useEffect(() => {
     const randomItems = getRandomItems(learningData, 3);
@@ -81,7 +81,11 @@ const ActivitiesScreen = () => {
     setShowGameModal(true);
   };
 
-  const onGameComplete = (gameTitle, finalScore) => {
+  const onGameComplete = async (
+    gameTitle,
+    finalScore,
+    totalQuestions = null
+  ) => {
     setShowGameModal(false);
     setCurrentGame(null);
     setGameData(null);
@@ -95,55 +99,76 @@ const ActivitiesScreen = () => {
       });
     }
 
-    setGameScoreData({
-      gameTitle,
-      score: finalScore,
-      errorTypes,
-    });
+    if (user && user.uid) {
+      try {
+        const gameData = {
+          playerName: user.displayName || user.email || "Player",
+          gameTitle,
+          score: finalScore,
+          totalQuestions,
+          errorTypes,
+          gameType: "spelling-game",
+        };
 
-    setShowPlayerNameModal(true);
-  };
+        const firebaseResult = await GameScoreService.saveGameScore(
+          user.uid,
+          gameData
+        );
+        if (firebaseResult.success) {
+          console.log("Game score saved to Firebase");
 
-  const onScoreSaved = (savedScore) => {
-    setShowPlayerNameModal(false);
-    setGameScoreData(null);
+          const correctAnswers = totalQuestions
+            ? Math.min(Math.floor(finalScore / 10), totalQuestions)
+            : null;
+          const displayScore = correctAnswers
+            ? `${correctAnswers}/${totalQuestions}`
+            : `${finalScore} points`;
 
-    Alert.alert(
-      "Score Saved!",
-      `Great job, ${savedScore.playerName}!\n\nYour score of ${savedScore.score} points has been saved.\n\nCheck your progress in the Progress Tracker!`,
-      [
-        {
-          text: "Play Another Game",
-          onPress: () => showGameSelection(),
-        },
-        {
-          text: "Done",
-          style: "cancel",
-        },
-      ]
-    );
-  };
-
-  const onScoreSaveSkipped = () => {
-    setShowPlayerNameModal(false);
-    setGameScoreData(null);
-
-    Alert.alert(
-      "Game Complete!",
-      `Final Score: ${
-        gameScoreData?.score || 0
-      } points\n\nGreat job practicing your spelling!`,
-      [
-        {
-          text: "Play Another Game",
-          onPress: () => showGameSelection(),
-        },
-        {
-          text: "Done",
-          style: "cancel",
-        },
-      ]
-    );
+          Alert.alert(
+            "Score Saved!",
+            `Great job, ${gameData.playerName}!\n\nYour score: ${displayScore}\n\nCheck your progress in Game Scores!`,
+            [
+              {
+                text: "Play Another Game",
+                onPress: () => showGameSelection(),
+              },
+              {
+                text: "Done",
+                style: "cancel",
+              },
+            ]
+          );
+        } else {
+          console.warn(
+            "Failed to save score to Firebase:",
+            firebaseResult.error
+          );
+          Alert.alert("Error", "Failed to save score. Please try again.");
+        }
+      } catch (error) {
+        console.error("Error saving game score:", error);
+        Alert.alert("Error", "Failed to save score. Please try again.");
+      }
+    } else {
+      Alert.alert(
+        "Game Complete!",
+        `Final Score: ${
+          totalQuestions
+            ? `${finalScore}/${totalQuestions}`
+            : `${finalScore} points`
+        }\n\nGreat job! Log in to save your scores.`,
+        [
+          {
+            text: "Play Another Game",
+            onPress: () => showGameSelection(),
+          },
+          {
+            text: "Done",
+            style: "cancel",
+          },
+        ]
+      );
+    }
   };
 
   const showGameSelection = (result = null) => {
@@ -291,35 +316,69 @@ const ActivitiesScreen = () => {
     }
   };
 
-  const displayResults = (result, apiUrl) => {
+  const displayResults = async (result, apiUrl, wordsChecked) => {
     if (!result.success) {
       Alert.alert("Error", "Invalid API response");
       return;
     }
     console.log("Spelling Check Results:", result);
-    const { summary, individual_results, grouped_analysis } = result;
+
+    if (user && user.uid) {
+      try {
+        const saveResult = await HistoryService.saveResult(
+          user.uid,
+          result,
+          wordsChecked || inputWords
+        );
+        if (saveResult.success) {
+          console.log("History saved successfully");
+        } else {
+          console.warn("Failed to save history:", saveResult.error);
+          // Show user-friendly message for Firebase index error
+          if (saveResult.error && saveResult.error.includes("index")) {
+            Alert.alert(
+              "History Feature Setup",
+              "The history feature needs to be set up in Firebase. Contact the developer to enable history tracking.",
+              [{ text: "OK" }]
+            );
+          }
+        }
+      } catch (error) {
+        console.error("Error saving history:", error);
+        // Handle specific Firebase errors
+        if (error.message && error.message.includes("index")) {
+          Alert.alert(
+            "History Feature Setup",
+            "The history feature needs to be set up in Firebase. Your spelling results will still work, but won't be saved to history.",
+            [{ text: "OK" }]
+          );
+        }
+      }
+    }
+
+    const { summary } = result;
 
     setApiResult(result);
 
     let message = `Spelling Check Results\n\n`;
     message += `Correct: ${summary.correct_words}/${summary.total_words} words\n`;
-    message += `Accuracy: ${(summary.accuracy * 100).toFixed(1)}%\n\n`;
+    // message += `Accuracy: ${(summary.accuracy * 100).toFixed(1)}%\n\n`;
 
     if (summary.incorrect_words > 0) {
-      message += `Words to improve:\n`;
+      // message += `Words to improve:\n`;
 
-      const incorrectWords = individual_results.filter((r) => !r.correct);
-      incorrectWords.forEach((item) => {
-        const confidence = (item.confidence * 100).toFixed(1);
-        message += `"${item.word}" - ${item.max_confidence_type} (${confidence}%)\n`;
-      });
+      // const incorrectWords = individual_results.filter((r) => !r.correct);
+      // incorrectWords.forEach((item) => {
+      //   const confidence = (item.confidence * 100).toFixed(1);
+      //   message += `"${item.word}" - ${item.max_confidence_type} (${confidence}%)\n`;
+      // });
 
-      message += `\nError Analysis:\n`;
-      Object.entries(grouped_analysis).forEach(([errorType, data]) => {
-        message += `${errorType}: ${data.count} words (avg confidence: ${(
-          data.avg_confidence * 100
-        ).toFixed(1)}%)\n`;
-      });
+      // message += `\nError Analysis:\n`;
+      // Object.entries(grouped_analysis).forEach(([errorType, data]) => {
+      //   message += `${errorType}: ${data.count} words (avg confidence: ${(
+      //     data.avg_confidence * 100
+      //   ).toFixed(1)}%)\n`;
+      // });
 
       Alert.alert("Spelling Results", message, [
         {
@@ -334,7 +393,7 @@ const ActivitiesScreen = () => {
     } else {
       message += `Perfect spelling! All words are correct!\n`;
       message += `You're amazing!\n\n`;
-      message += `Final Score: ${summary.final_score}\n`;
+      // message += `Final Score: ${summary.final_score}\n`;
 
       Alert.alert("Spelling Results", message);
     }
@@ -346,11 +405,33 @@ const ActivitiesScreen = () => {
       return;
     }
 
+    if (!user || !user.uid) {
+      Alert.alert(
+        "Guest Mode",
+        "You are not logged in. Results won't be saved to your history. Would you like to continue?",
+        [
+          {
+            text: "Cancel",
+            style: "cancel",
+          },
+          {
+            text: "Continue",
+            onPress: () => performSpellingCheck(words),
+          },
+        ]
+      );
+      return;
+    }
+
+    await performSpellingCheck(words);
+  };
+
+  const performSpellingCheck = async (words) => {
     try {
       setIsCheckingWords(true);
 
       const result = await apiCheckWords(words);
-      displayResults(result.data, result.apiUrl);
+      await displayResults(result.data, result.apiUrl, words);
     } catch (error) {
       const errorInfo = handleApiError(error);
       Alert.alert(errorInfo.title, errorInfo.message);
@@ -557,17 +638,6 @@ const ActivitiesScreen = () => {
           {renderCurrentGame()}
         </View>
       </Modal>
-
-      {gameScoreData && (
-        <PlayerNameModal
-          visible={showPlayerNameModal}
-          gameTitle={gameScoreData.gameTitle}
-          score={gameScoreData.score}
-          errorTypes={gameScoreData.errorTypes}
-          onSave={onScoreSaved}
-          onCancel={onScoreSaveSkipped}
-        />
-      )}
     </ScrollView>
   );
 };

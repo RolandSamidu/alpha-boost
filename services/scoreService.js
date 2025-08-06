@@ -1,4 +1,3 @@
-// Simple in-memory storage that works without native modules
 class SimpleStorage {
   constructor() {
     this.storage = new Map();
@@ -49,7 +48,6 @@ const storage = new SimpleStorage();
 const STORAGE_KEY = "@alpha_boost_scores";
 
 const ScoreService = {
-  // Save a new score entry
   async saveScore(playerName, gameTitle, score, errorTypes = []) {
     try {
       const timestamp = new Date().toISOString();
@@ -75,7 +73,6 @@ const ScoreService = {
     }
   },
 
-  // Get all scores
   async getAllScores() {
     try {
       const scoresJson = await storage.getItem(STORAGE_KEY);
@@ -86,7 +83,6 @@ const ScoreService = {
     }
   },
 
-  // Get scores for a specific player
   async getPlayerScores(playerName) {
     try {
       const allScores = await this.getAllScores();
@@ -99,7 +95,6 @@ const ScoreService = {
     }
   },
 
-  // Get top scores (overall leaderboard)
   async getTopScores(limit = 10) {
     try {
       const allScores = await this.getAllScores();
@@ -110,7 +105,6 @@ const ScoreService = {
     }
   },
 
-  // Get player statistics
   async getPlayerStats(playerName) {
     try {
       const playerScores = await this.getPlayerScores(playerName);
@@ -133,7 +127,6 @@ const ScoreService = {
       const averageScore = Math.round(totalScore / playerScores.length);
       const bestScore = Math.max(...playerScores.map((s) => s.score));
 
-      // Error type statistics
       const errorTypeStats = {};
       playerScores.forEach((score) => {
         score.errorTypes.forEach((errorType) => {
@@ -141,7 +134,6 @@ const ScoreService = {
         });
       });
 
-      // Game type statistics
       const gameStats = {};
       playerScores.forEach((score) => {
         gameStats[score.gameTitle] = (gameStats[score.gameTitle] || 0) + 1;
@@ -162,7 +154,6 @@ const ScoreService = {
     }
   },
 
-  // Clear all scores (for testing or reset)
   async clearAllScores() {
     try {
       await storage.removeItem(STORAGE_KEY);
@@ -172,7 +163,6 @@ const ScoreService = {
     }
   },
 
-  // Save/update player name preference
   async savePlayerName(playerName) {
     try {
       await storage.setItem("@alpha_boost_player_name", playerName);
@@ -182,7 +172,6 @@ const ScoreService = {
     }
   },
 
-  // Get saved player name
   async getPlayerName() {
     try {
       const playerName = await storage.getItem("@alpha_boost_player_name");

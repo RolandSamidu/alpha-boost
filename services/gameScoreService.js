@@ -36,7 +36,7 @@ const GameScoreService = {
         errorTypes: gameData.errorTypes || [],
         gameType: gameData.gameType || "spelling",
         difficulty: gameData.difficulty || "normal",
-        duration: gameData.duration || null, // in seconds
+        duration: gameData.duration || null,
         createdAt: serverTimestamp(),
         timestamp: new Date().toISOString(),
       };

@@ -9,7 +9,11 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.anonymous.alphaboost",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -44,6 +48,8 @@
       "eas": {
         "projectId": "827f4dc9-bdf3-4a41-8329-6229767e00b2"
       }
-    }
+    },
+    "owner": "isurusajith",
+    "expo-channel-name": "production"
   }
 }

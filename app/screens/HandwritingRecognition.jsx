@@ -11,14 +11,14 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import Svg, { Path } from "react-native-svg";
 import { captureRef } from "react-native-view-shot";
 
 const { width: screenWidth } = Dimensions.get("window");
 const CANVAS_WIDTH = screenWidth - 40;
-const CANVAS_HEIGHT = 300;
+const CANVAS_HEIGHT = 600;
 
-// Google Vision API Configuration
-const GOOGLE_VISION_API_KEY = "YOUR_API_KEY_HERE"; // Replace with your API key
+const GOOGLE_VISION_API_KEY = "YOUR_API_KEY_HERE";
 const GOOGLE_VISION_API_URL = `https://vision.googleapis.com/v1/images:annotate?key=${GOOGLE_VISION_API_KEY}`;
 
 const HandwritingRecognition = () => {
@@ -30,7 +30,6 @@ const HandwritingRecognition = () => {
   const [isDrawing, setIsDrawing] = useState(false);
   const canvasRef = useRef(null);
 
-  // Convert canvas to base64 image
   const captureCanvas = async () => {
     try {
       console.log("Capturing canvas...");
@@ -48,7 +47,6 @@ const HandwritingRecognition = () => {
 
       console.log("Base64 length:", base64.length);
 
-      // Clean up temp file
       await FileSystem.deleteAsync(uri, { idempotent: true });
 
       return base64;
@@ -58,9 +56,7 @@ const HandwritingRecognition = () => {
     }
   };
 
-  // Call Google Vision API for text detection
   const callGoogleVisionAPI = async (base64Image) => {
-    // Validate API key
     if (
       !GOOGLE_VISION_API_KEY ||
       GOOGLE_VISION_API_KEY === "YOUR_API_KEY_HERE"
@@ -268,10 +264,8 @@ const HandwritingRecognition = () => {
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
-      <Text style={styles.title}>✍️ AI Handwriting Recognition</Text>
-      <Text style={styles.subtitle}>Draw letters or words below:</Text>
+      <Text style={styles.title}>Draw letters or words below</Text>
 
-      {/* Drawing Canvas */}
       <View style={styles.canvasContainer}>
         <View
           style={styles.canvas}
@@ -280,39 +274,50 @@ const HandwritingRecognition = () => {
           onTouchEnd={handleTouchEnd}
           ref={canvasRef}
         >
-          {/* Render completed paths as dots */}
-          {paths
-            .filter((path) => Array.isArray(path) && path.length > 0)
-            .map((path, pathIndex) =>
-              path.map((point, pointIndex) => (
-                <View
-                  key={`${pathIndex}-${pointIndex}`}
-                  style={[
-                    styles.drawingDot,
-                    {
-                      left: point.x - 2,
-                      top: point.y - 2,
-                    },
-                  ]}
-                />
-              ))
-            )}
+          <Svg
+            style={styles.svgCanvas}
+            width={CANVAS_WIDTH}
+            height={CANVAS_HEIGHT}
+          >
+            {paths
+              .filter((path) => Array.isArray(path) && path.length > 0)
+              .map((path, pathIndex) => {
+                if (path.length < 2) return null;
+                const pathData = path.reduce((acc, point, index) => {
+                  if (index === 0) {
+                    return `M ${point.x} ${point.y}`;
+                  }
+                  return `${acc} L ${point.x} ${point.y}`;
+                }, "");
+                return (
+                  <Path
+                    key={`path-${pathIndex}`}
+                    d={pathData}
+                    stroke="#1F2937"
+                    strokeWidth={4}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    fill="none"
+                  />
+                );
+              })}
 
-          {/* Render current path being drawn */}
-          {Array.isArray(currentPath) &&
-            currentPath.map((point, index) => (
-              <View
-                key={`current-${index}`}
-                style={[
-                  styles.drawingDot,
-                  styles.currentDot,
-                  {
-                    left: point.x - 2,
-                    top: point.y - 2,
-                  },
-                ]}
+            {Array.isArray(currentPath) && currentPath.length > 1 && (
+              <Path
+                d={currentPath.reduce((acc, point, index) => {
+                  if (index === 0) {
+                    return `M ${point.x} ${point.y}`;
+                  }
+                  return `${acc} L ${point.x} ${point.y}`;
+                }, "")}
+                stroke="#10B981"
+                strokeWidth={4}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                fill="none"
               />
-            ))}
+            )}
+          </Svg>
 
           {paths.length === 0 && currentPath.length === 0 && (
             <Text style={styles.canvasPlaceholder}>
@@ -322,7 +327,6 @@ const HandwritingRecognition = () => {
         </View>
       </View>
 
-      {/* Control Buttons */}
       <View style={styles.buttonContainer}>
         <TouchableOpacity
           style={[styles.button, styles.clearButton]}
@@ -342,7 +346,6 @@ const HandwritingRecognition = () => {
         </TouchableOpacity>
       </View>
 
-      {/* Loading Indicator */}
       {loading && (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#8B5CF6" />
@@ -352,7 +355,6 @@ const HandwritingRecognition = () => {
         </View>
       )}
 
-      {/* Recognition Results */}
       {words.length > 0 && !loading && (
         <View style={styles.resultsContainer}>
           <Text style={styles.resultsTitle}>🎯 AI Recognized Text:</Text>
@@ -375,23 +377,6 @@ const HandwritingRecognition = () => {
           )}
         </View>
       )}
-
-      {/* Instructions */}
-      <View style={styles.instructionsContainer}>
-        <Text style={styles.instructionsTitle}>📝 How to use:</Text>
-        <Text style={styles.instruction}>
-          1. Draw letters or words clearly in the canvas above
-        </Text>
-        <Text style={styles.instruction}>
-          2. Tap &quot;AI Recognize&quot; to analyze with Google Vision AI
-        </Text>
-        <Text style={styles.instruction}>
-          3. Use &quot;Clear&quot; to start over
-        </Text>
-        <Text style={styles.note}>
-          Note: Requires internet connection and valid Google Vision API key
-        </Text>
-      </View>
     </ScrollView>
   );
 };
@@ -442,15 +427,10 @@ const styles = StyleSheet.create({
     shadowRadius: 3.84,
     overflow: "hidden",
   },
-  drawingDot: {
+  svgCanvas: {
     position: "absolute",
-    width: 4,
-    height: 4,
-    backgroundColor: "#1F2937",
-    borderRadius: 2,
-  },
-  currentDot: {
-    backgroundColor: "#10B981",
+    top: 0,
+    left: 0,
   },
   canvasPlaceholder: {
     fontSize: 16,

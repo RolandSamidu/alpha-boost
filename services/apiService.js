@@ -120,3 +120,59 @@ export const handleApiError = (error) => {
 
   return { title, message };
 };
+
+export const extractTextFromImage = async (base64Image) => {
+  console.log("Finding working API endpoint...");
+
+  const apiUrl = await findWorkingAPI();
+
+  if (!apiUrl) {
+    throw new Error("No working API endpoint found");
+  }
+
+  const apiInstance = createApiInstance(apiUrl);
+
+  console.log("Sending request to /extract_text API at:", apiUrl);
+
+  const response = await apiInstance.post("/extract_text", {
+    image: base64Image,
+  });
+  // console.log(response);
+
+  // Clean up the extracted text by removing surrounding quotes
+  const rawText = response.data.extracted_text || "";
+  const cleanText = rawText.replace(/^["']|["']$/g, "");
+
+  return {
+    fullText: cleanText,
+    words: cleanText ? cleanText.split(/\s+/) : [],
+  };
+};
+
+export const handleExtractTextError = (error) => {
+  let title = "Recognition Error";
+  let message = "";
+
+  if (error.message.includes("No working API endpoint")) {
+    title = "Cannot Connect to AI Service";
+    message = `Unable to connect to text recognition service\n\nPlease make sure your API server is running and try again.`;
+  } else if (
+    error.message.includes("timeout") ||
+    error.message.includes("Request timeout") ||
+    error.code === "ECONNABORTED"
+  ) {
+    title = "Connection Timeout";
+    message = `The AI service is taking too long to respond\n\nPlease check your connection and try again.`;
+  } else if (error.response) {
+    title = "AI Service Error";
+    message = `Server Error: HTTP ${error.response.status}\n\nPlease try again in a moment.`;
+  } else if (error.request) {
+    title = "Network Error";
+    message = `Unable to reach the AI service\n\nPlease check your internet connection.`;
+  } else {
+    title = "Recognition Error";
+    message = `Something went wrong with text recognition. Please try again.`;
+  }
+
+  return { title, message };
+};

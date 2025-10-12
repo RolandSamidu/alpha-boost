@@ -1,5 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import * as FileSystem from "expo-file-system";
+import * as MediaLibrary from "expo-media-library";
 import { useRef, useState } from "react";
 import {
   ActivityIndicator,
@@ -13,13 +14,14 @@ import {
 } from "react-native";
 import Svg, { Path } from "react-native-svg";
 import { captureRef } from "react-native-view-shot";
+import {
+  extractTextFromImage,
+  handleExtractTextError,
+} from "../../services/apiService";
 
 const { width: screenWidth } = Dimensions.get("window");
 const CANVAS_WIDTH = screenWidth - 40;
 const CANVAS_HEIGHT = 600;
-
-const GOOGLE_VISION_API_KEY = "YOUR_API_KEY_HERE";
-const GOOGLE_VISION_API_URL = `https://vision.googleapis.com/v1/images:annotate?key=${GOOGLE_VISION_API_KEY}`;
 
 const HandwritingRecognition = () => {
   const [paths, setPaths] = useState([]);
@@ -33,6 +35,13 @@ const HandwritingRecognition = () => {
   const captureCanvas = async () => {
     try {
       console.log("Capturing canvas...");
+
+      // Request media library permissions
+      const { status } = await MediaLibrary.requestPermissionsAsync();
+      if (status !== "granted") {
+        throw new Error("Media library permission not granted");
+      }
+
       const uri = await captureRef(canvasRef, {
         format: "png",
         quality: 0.8,
@@ -47,114 +56,39 @@ const HandwritingRecognition = () => {
 
       console.log("Base64 length:", base64.length);
 
+      // Save to DCIM folder using MediaLibrary
+      const timestamp = new Date().getTime();
+      const filename = `canvas_${timestamp}.png`;
+
+      // Create asset from the captured image
+      const asset = await MediaLibrary.createAssetAsync(uri);
+      console.log("Image saved to DCIM/media library:", asset.uri);
+
+      // Also save a copy to app's captured folder for internal use
+      const capturedDir = `${FileSystem.documentDirectory}captured/`;
+      await FileSystem.makeDirectoryAsync(capturedDir, { intermediates: true });
+
+      const capturedImagePath = `${capturedDir}${filename}`;
+      await FileSystem.copyAsync({
+        from: uri,
+        to: capturedImagePath,
+      });
+
+      console.log(
+        "Image also saved to app captured folder:",
+        capturedImagePath
+      );
+
+      // Clean up temp file
       await FileSystem.deleteAsync(uri, { idempotent: true });
 
-      return base64;
+      return { base64, imagePath: capturedImagePath, mediaUri: asset.uri };
     } catch (error) {
       console.error("Error capturing canvas:", error);
       throw error;
     }
   };
 
-  const callGoogleVisionAPI = async (base64Image) => {
-    if (
-      !GOOGLE_VISION_API_KEY ||
-      GOOGLE_VISION_API_KEY === "YOUR_API_KEY_HERE"
-    ) {
-      throw new Error("Please set a valid Google Vision API key");
-    }
-
-    const requestBody = {
-      requests: [
-        {
-          image: {
-            content: base64Image,
-          },
-          features: [
-            {
-              type: "TEXT_DETECTION",
-              maxResults: 10,
-            },
-          ],
-        },
-      ],
-    };
-
-    console.log("Sending request to Google Vision API...");
-
-    try {
-      const response = await fetch(GOOGLE_VISION_API_URL, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(requestBody),
-      });
-
-      console.log("Response status:", response.status);
-
-      const responseText = await response.text();
-      console.log("Raw response:", responseText);
-
-      if (!response.ok) {
-        let errorMessage = `HTTP error! status: ${response.status}`;
-        try {
-          const errorData = JSON.parse(responseText);
-          if (errorData.error) {
-            errorMessage += ` - ${errorData.error.message}`;
-            if (errorData.error.details) {
-              errorMessage += ` Details: ${JSON.stringify(
-                errorData.error.details
-              )}`;
-            }
-          }
-        } catch (_parseError) {
-          errorMessage += ` - Raw response: ${responseText}`;
-        }
-        throw new Error(errorMessage);
-      }
-
-      const data = JSON.parse(responseText);
-      console.log("Parsed response:", data);
-
-      if (data.responses && data.responses[0]) {
-        const result = data.responses[0];
-
-        if (result.error) {
-          throw new Error(`API Error: ${result.error.message}`);
-        }
-
-        // Extract text from the response
-        if (result.textAnnotations && result.textAnnotations.length > 0) {
-          const fullText = result.textAnnotations[0].description;
-          const words = result.textAnnotations
-            .slice(1)
-            .map((annotation) => annotation.description);
-
-          console.log("Extracted text:", fullText);
-          console.log("Extracted words:", words);
-
-          return {
-            fullText: fullText || "",
-            words: words || [],
-          };
-        } else {
-          console.log("No text annotations found");
-          return {
-            fullText: "",
-            words: [],
-          };
-        }
-      }
-
-      return { fullText: "", words: [] };
-    } catch (error) {
-      console.error("Google Vision API error:", error);
-      throw error;
-    }
-  };
-
-  // Google Vision API handwriting recognition
   const recognizeHandwriting = async () => {
     const validPaths = paths.filter(
       (path) => Array.isArray(path) && path.length > 0
@@ -168,19 +102,25 @@ const HandwritingRecognition = () => {
     setLoading(true);
 
     try {
-      // Capture the canvas as base64 image
-      const base64Image = await captureCanvas();
+      const {
+        base64: base64Image,
+        imagePath,
+        mediaUri,
+      } = await captureCanvas();
 
-      // Call Google Vision API
-      const result = await callGoogleVisionAPI(base64Image);
+      console.log("Captured image saved at:", imagePath);
+      console.log("Image also saved to DCIM/media library:", mediaUri);
 
+      const result = await extractTextFromImage(base64Image);
+      // {extractTextFromImage
+      //   "extracted_text": "JSuru",
+      //   "success": true,
+      //   "timestamp": "2025-10-12T13:45:29.148078"
+      // }
+      console.log(result, "result");
       if (result.fullText && result.fullText.trim()) {
         setRecognizedText(result.fullText.trim());
-        setWords(
-          result.words.length > 0
-            ? result.words
-            : result.fullText.trim().split(" ")
-        );
+        setWords(result.words);
 
         Alert.alert(
           "Recognition Complete!",
@@ -198,11 +138,8 @@ const HandwritingRecognition = () => {
       }
     } catch (error) {
       console.error("Recognition error:", error);
-      Alert.alert(
-        "Recognition Error",
-        `Failed to recognize text: ${error.message}. Please check your internet connection and API key.`,
-        [{ text: "OK" }]
-      );
+      const { title, message } = handleExtractTextError(error);
+      Alert.alert(title, message, [{ text: "OK" }]);
     } finally {
       setLoading(false);
     }
@@ -349,15 +286,13 @@ const HandwritingRecognition = () => {
       {loading && (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#8B5CF6" />
-          <Text style={styles.loadingText}>
-            Analyzing with Google Vision AI...
-          </Text>
+          <Text style={styles.loadingText}>Analyzing with AI...</Text>
         </View>
       )}
 
       {words.length > 0 && !loading && (
         <View style={styles.resultsContainer}>
-          <Text style={styles.resultsTitle}>🎯 AI Recognized Text:</Text>
+          <Text style={styles.resultsTitle}>Recognized Text:</Text>
 
           <View style={styles.fullTextContainer}>
             <Text style={styles.fullTextLabel}>Detected Text:</Text>
